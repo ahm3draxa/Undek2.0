@@ -1,5 +1,7 @@
 # Undek 2.0
 
+_IT Solutions Platform_
+
 A full-stack Laravel platform for a digital agency: public landing page, client quote intake with skill-based specialist routing, an Upwork-style quotation → project → milestone pipeline with polling chat, Spatie roles & permissions (CEO/Admin/Specialist/Expert/Employee/Intern/Client), flexible employee compensation (hourly / fixed salary / fixed project price / % of project) with increments and promotions, a marketing email tool, self-serve certificates & letters, client/Undek project feedback, and CEO-only financial reports.
 
 ## Requirements
