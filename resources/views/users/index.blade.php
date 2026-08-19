@@ -28,7 +28,19 @@
                         @foreach ($users as $user)
                             <tr class="text-gray-700 dark:text-gray-200">
                                 <td class="px-6 py-4 font-medium">{{ $user->name }}</td>
-                                <td class="px-6 py-4">{{ $user->email }}</td>
+                                <td class="px-6 py-4">
+                                    <details class="group">
+                                        <summary class="cursor-pointer list-none flex items-center gap-1.5 marker:content-none">
+                                            <span>{{ $user->email }}</span>
+                                            <x-icon name="pencil" class="w-3.5 h-3.5 text-gray-300 dark:text-gray-600 group-hover:text-cyan-500" />
+                                        </summary>
+                                        <form method="POST" action="{{ route('users.update-email', $user) }}" class="mt-2 flex items-center gap-2" onsubmit="return confirm('Change {{ $user->name }}\'s login email? They\'ll need to re-verify it.')">
+                                            @csrf @method('PATCH')
+                                            <input type="email" name="email" value="{{ $user->email }}" required class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 text-sm py-1">
+                                            <button class="text-xs font-medium text-cyan-600 dark:text-cyan-400 hover:underline">Save</button>
+                                        </form>
+                                    </details>
+                                </td>
                                 <td class="px-6 py-4">
                                     <form method="POST" action="{{ route('users.role', $user) }}">
                                         @csrf @method('PATCH')
@@ -55,6 +67,15 @@
                                                 Reset password
                                             </button>
                                         </form>
+                                        @if ($user->hasEnabledTwoFactorAuthentication())
+                                            <form method="POST" action="{{ route('users.disable-2fa', $user) }}" onsubmit="return confirm('Disable two-factor authentication for {{ $user->name }}? Only do this if they\'re locked out and have no recovery codes left.')">
+                                                @csrf
+                                                <button class="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 hover:underline">
+                                                    <x-icon name="shield-check" class="w-4 h-4" />
+                                                    Disable 2FA
+                                                </button>
+                                            </form>
+                                        @endif
                                         @unless ($user->id === auth()->id())
                                             <form method="POST" action="{{ route('users.toggle-active', $user) }}">
                                                 @csrf @method('PATCH')

@@ -171,6 +171,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('/users/{user}/role', [UserController::class, 'updateRole'])->name('users.role');
         Route::patch('/users/{user}/toggle-active', [UserController::class, 'toggleActive'])->name('users.toggle-active');
         Route::post('/users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
+        Route::patch('/users/{user}/email', [UserController::class, 'updateEmail'])->name('users.update-email');
+        Route::post('/users/{user}/disable-2fa', [UserController::class, 'disableTwoFactor'])->name('users.disable-2fa');
     });
 
     // Roles & permissions — what each role is allowed to do.

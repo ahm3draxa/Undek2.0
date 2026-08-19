@@ -6,7 +6,9 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Role;
 
@@ -70,5 +72,60 @@ class UserController extends Controller
         ]);
 
         return back()->with('status', $user->is_active ? "{$user->name} deactivated." : "{$user->name} reactivated.");
+    }
+
+    /**
+     * Admin-side email correction for a locked-out user who can't reach their
+     * own profile page to self-service it. Re-verification is required, same
+     * as when a user changes their own email.
+     */
+    public function updateEmail(Request $request, User $user): RedirectResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)->ignore($user->id)],
+        ]);
+
+        $oldEmail = $user->email;
+
+        $user->forceFill([
+            'email' => $data['email'],
+            'email_verified_at' => null,
+        ])->save();
+
+        Log::warning('Admin changed a user\'s email', [
+            'actor_id' => $request->user()->id,
+            'actor_email' => $request->user()->email,
+            'target_id' => $user->id,
+            'old_email' => $oldEmail,
+            'new_email' => $data['email'],
+        ]);
+
+        return back()->with('status', "{$user->name}'s email changed to {$data['email']}.");
+    }
+
+    /**
+     * Recovery path for a user locked out of their own account — no authenticator,
+     * no recovery codes. Self-service disable (TwoFactorAuthenticationController)
+     * requires the current password, which a locked-out user can't provide either,
+     * so this is the only way back in for them.
+     */
+    public function disableTwoFactor(Request $request, User $user): RedirectResponse
+    {
+        abort_unless($user->hasEnabledTwoFactorAuthentication(), 422, "{$user->name} doesn't have two-factor authentication enabled.");
+
+        $user->forceFill([
+            'two_factor_secret' => null,
+            'two_factor_recovery_codes' => null,
+            'two_factor_confirmed_at' => null,
+        ])->save();
+
+        Log::warning('Admin disabled two-factor authentication for a user', [
+            'actor_id' => $request->user()->id,
+            'actor_email' => $request->user()->email,
+            'target_id' => $user->id,
+            'target_email' => $user->email,
+        ]);
+
+        return back()->with('status', "Two-factor authentication disabled for {$user->name}.");
     }
 }
