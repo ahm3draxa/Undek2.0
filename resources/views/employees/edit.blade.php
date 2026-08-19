@@ -1,38 +1,44 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="flex items-center gap-2 font-space font-semibold text-xl text-gray-800 dark:text-gray-100 leading-tight">
-            <x-icon name="pencil" class="w-5 h-5" style="color:#7c5cff" />
-            {{ __('Edit Profile — :name', ['name' => $employee->name]) }}
-        </h2>
+        <x-page-header icon="pencil" :title="__('Edit Profile — :name', ['name' => $employee->name])" />
     </x-slot>
 
     <div class="py-12">
         <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6 transition-colors duration-200">
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl p-6 transition-colors duration-200 relative overflow-hidden">
+                <div class="absolute top-0 left-0 right-0 h-[3px]" style="background:linear-gradient(135deg,#7c5cff,#22d3ee)"></div>
                 @php $profile = $employee->employeeProfile; @endphp
                 <form method="POST" action="{{ route('employees.update', $employee) }}" class="space-y-4"
                     x-data="{ compensationType: '{{ old('compensation_type', $profile->compensation_type ?? 'fixed_salary') }}' }">
                     @csrf @method('PUT')
 
-                    <div class="grid grid-cols-2 gap-4">
+                    @can('manage users')
                         <div>
-                            <x-input-label for="position_id" value="Position" />
-                            <select id="position_id" name="position_id" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 shadow-sm">
-                                <option value="">Select a position</option>
-                                @foreach ($positions as $position)
-                                    <option value="{{ $position->id }}" @selected((string) old('position_id', $profile->position_id ?? '') === (string) $position->id)>{{ $position->name }}</option>
+                            <x-input-label for="role" value="Role" />
+                            <select id="role" name="role" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 shadow-sm">
+                                @php $currentRole = $employee->roles->first()?->name; @endphp
+                                @foreach ([
+                                    'intern' => 'Intern',
+                                    'employee' => 'Employee',
+                                    'specialist' => 'Specialist',
+                                    'expert' => 'Expert',
+                                    'admin' => 'Admin',
+                                    'ceo' => 'CEO',
+                                ] as $value => $label)
+                                    <option value="{{ $value }}" @selected(old('role', $currentRole) === $value)>{{ $label }}</option>
                                 @endforeach
                             </select>
+                            <p class="text-xs text-gray-400 mt-1">Ordered as a typical growth path — roles aren't otherwise ranked, each has its own permission set on the <a href="{{ route('roles.index') }}" class="text-cyan-600 dark:text-cyan-400 hover:underline">Roles &amp; Permissions</a> page. Changing this replaces their current role.</p>
+                            <x-input-error :messages="$errors->get('role')" class="mt-2" />
                         </div>
-                        <div>
-                            <x-input-label for="department_id" value="Department" />
-                            <select id="department_id" name="department_id" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 shadow-sm">
-                                <option value="">Select a department</option>
-                                @foreach ($departments as $department)
-                                    <option value="{{ $department->id }}" @selected((string) old('department_id', $profile->department_id ?? '') === (string) $department->id)>{{ $department->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
+                    @endcan
+
+                    <div class="rounded-md bg-gray-50 dark:bg-gray-900/40 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 flex items-center justify-between">
+                        <span>
+                            <span class="text-gray-400">Position:</span> {{ $profile->position->name ?? 'None yet' }}
+                            <span class="text-gray-400 ml-2">Department:</span> {{ $profile->department->name ?? '—' }}
+                        </span>
+                        <span class="text-xs text-gray-400">Change via Promote/Transfer on their profile</span>
                     </div>
 
                     <div>

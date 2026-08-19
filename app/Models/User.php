@@ -53,7 +53,25 @@ class User extends Authenticatable
             'deactivated_at' => 'datetime',
             'is_active' => 'boolean',
             'password' => 'hashed',
+            'two_factor_secret' => 'encrypted',
+            'two_factor_recovery_codes' => 'encrypted:array',
+            'two_factor_confirmed_at' => 'datetime',
         ];
+    }
+
+    public function hasEnabledTwoFactorAuthentication(): bool
+    {
+        return ! is_null($this->two_factor_confirmed_at);
+    }
+
+    /**
+     * Removes a used recovery code so it can't be replayed.
+     */
+    public function consumeRecoveryCode(string $code): void
+    {
+        $codes = array_values(array_diff($this->two_factor_recovery_codes ?? [], [$code]));
+
+        $this->forceFill(['two_factor_recovery_codes' => $codes])->save();
     }
 
     public function avatarUrl(): ?string
@@ -72,6 +90,43 @@ class User extends Authenticatable
     public function employeeProfile(): HasOne
     {
         return $this->hasOne(EmployeeProfile::class);
+    }
+
+    /**
+     * Additional positions held alongside the primary one on the employee profile.
+     */
+    public function secondaryPositions(): BelongsToMany
+    {
+        return $this->belongsToMany(Position::class, 'employee_positions')->withPivot('assigned_at')->withTimestamps();
+    }
+
+    /**
+     * Every position currently held — primary (from the employee profile) plus secondary.
+     * Queries fresh rather than trusting any already-loaded relations, since callers often
+     * update the primary position moments before calling this in the same request.
+     */
+    public function allPositions(): \Illuminate\Support\Collection
+    {
+        $primaryPositionId = $this->employeeProfile()->value('position_id');
+        $primary = $primaryPositionId ? Position::find($primaryPositionId) : null;
+
+        return collect([$primary])->filter()->concat($this->secondaryPositions()->get())->unique('id')->values();
+    }
+
+    /**
+     * Recompute this user's direct permissions from every position they currently hold.
+     * Positions are the only source of direct permissions in this app — roles are separate
+     * and untouched — so this is a full resync, not an additive grant.
+     */
+    public function syncPermissionsFromPositions(): void
+    {
+        $permissionNames = $this->allPositions()
+            ->flatMap(fn (Position $position) => $position->permissions->pluck('name'))
+            ->unique()
+            ->values()
+            ->all();
+
+        $this->syncPermissions($permissionNames);
     }
 
     public function quoteRequests(): HasMany

@@ -2,18 +2,18 @@
 
     <!-- Desktop sidebar -->
     <aside class="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:w-64 bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 transition-colors duration-200 z-30">
-        <div class="h-16 flex items-center gap-2.5 px-5 border-b border-gray-100 dark:border-gray-700">
-            <a href="{{ route('dashboard') }}" class="flex items-center gap-2.5">
-                <span class="block w-7 h-7 rounded-lg rotate-12" style="background:linear-gradient(135deg,#7c5cff,#22d3ee);box-shadow:0 0 14px rgba(124,92,255,.5)"></span>
-                <span class="font-space font-bold text-lg tracking-tight text-gray-900 dark:text-gray-100">undek</span>
+        <div class="shrink-0 h-16 flex items-center justify-between gap-2.5 px-5 border-b border-gray-100 dark:border-gray-700">
+            <a href="{{ route('dashboard') }}" class="flex items-center">
+                <x-logo-lockup class="text-lg tracking-tight text-gray-900 dark:text-gray-100" />
             </a>
+            <x-notification-bell align="left" />
         </div>
 
-        <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+        <nav class="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-1">
             @include('layouts.nav-items')
         </nav>
 
-        <div class="border-t border-gray-100 dark:border-gray-700 p-3 space-y-1">
+        <div class="shrink-0 border-t border-gray-100 dark:border-gray-700 p-3 space-y-1">
             <button
                 @click="$store.theme.toggle()"
                 type="button"
@@ -28,7 +28,7 @@
                 <span x-text="$store.theme.dark ? 'Light mode' : 'Dark mode'"></span>
             </button>
 
-            <x-dropdown align="left" width="56">
+            <x-dropdown align="left" width="56" direction="up">
                 <x-slot name="trigger">
                     <button class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-space font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition">
                         @if (Auth::user()->avatarUrl())
@@ -60,11 +60,11 @@
 
     <!-- Mobile top bar -->
     <div class="lg:hidden flex items-center justify-between h-16 px-4 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 transition-colors duration-200">
-        <a href="{{ route('dashboard') }}" class="flex items-center gap-2.5">
-            <span class="block w-7 h-7 rounded-lg rotate-12" style="background:linear-gradient(135deg,#7c5cff,#22d3ee);box-shadow:0 0 14px rgba(124,92,255,.5)"></span>
-            <span class="font-space font-bold text-lg tracking-tight text-gray-900 dark:text-gray-100">undek</span>
+        <a href="{{ route('dashboard') }}" class="flex items-center">
+            <x-logo-lockup class="text-lg tracking-tight text-gray-900 dark:text-gray-100" />
         </a>
         <div class="flex items-center gap-1">
+            <x-notification-bell />
             <button
                 @click="$store.theme.toggle()"
                 type="button"
@@ -95,8 +95,8 @@
         <div x-show="open" x-transition:enter="ease-out duration-200" x-transition:enter-start="-translate-x-full" x-transition:enter-end="translate-x-0"
              x-transition:leave="ease-in duration-150" x-transition:leave-start="translate-x-0" x-transition:leave-end="-translate-x-full"
              class="absolute inset-y-0 left-0 w-72 max-w-[85vw] bg-white dark:bg-gray-800 shadow-xl flex flex-col transition-colors duration-200">
-            <div class="h-16 flex items-center justify-between px-5 border-b border-gray-100 dark:border-gray-700">
-                <span class="font-space font-bold text-lg tracking-tight text-gray-900 dark:text-gray-100">undek</span>
+            <div class="shrink-0 h-16 flex items-center justify-between px-5 border-b border-gray-100 dark:border-gray-700">
+                <x-logo-lockup class="text-lg tracking-tight text-gray-900 dark:text-gray-100" />
                 <button @click="open = false" class="p-2 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                     <svg class="h-5 w-5" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -104,11 +104,11 @@
                 </button>
             </div>
 
-            <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1" @click="open = false">
+            <nav class="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-1" @click="open = false">
                 @include('layouts.nav-items')
             </nav>
 
-            <div class="border-t border-gray-100 dark:border-gray-700 p-3 space-y-1">
+            <div class="shrink-0 border-t border-gray-100 dark:border-gray-700 p-3 space-y-1">
                 <div class="px-3 py-2">
                     <div class="font-medium text-sm text-gray-800 dark:text-gray-100">{{ Auth::user()->name }}</div>
                     <div class="text-xs text-gray-500 dark:text-gray-400">{{ Auth::user()->email }}</div>

@@ -1,23 +1,20 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="flex items-center gap-2 font-space font-semibold text-xl text-gray-800 dark:text-gray-100 leading-tight">
-            <x-icon name="sparkles" class="w-5 h-5" style="color:#7c5cff" />
-            {{ __('Marketing') }}
-        </h2>
+        <x-page-header icon="sparkles" title="Marketing" subtitle="Send offers and updates to clients, and track what's gone out." />
     </x-slot>
 
     <div class="py-12">
         <div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            @if (session('status'))
-                <div class="rounded-lg border border-emerald-300 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-4 py-3 text-sm">
-                    {{ session('status') }}
-                </div>
-            @endif
+            <x-status-banner />
 
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6 space-y-4 transition-colors duration-200"
+            <div class="grid grid-cols-3 gap-4">
+                <x-stat-card icon="document-text" label="Campaigns sent" :value="$stats['campaigns']" accent="violet" />
+                <x-stat-card icon="users" label="Recipients reached" :value="$stats['recipients']" accent="green" />
+                <x-stat-card icon="user-circle" label="Total clients" :value="$stats['clients']" accent="pink" />
+            </div>
+
+            <x-panel icon="sparkles" title="Send a campaign" accent="amber" subtitle="Emails are delivered through the mail driver configured for this environment."
                 x-data="{ audience: '{{ old('audience', 'all_clients') }}' }">
-                <h3 class="font-semibold text-gray-900 dark:text-gray-100">Send a campaign</h3>
-                <p class="text-xs text-gray-400 -mt-2">Emails are delivered through the mail driver configured for this environment.</p>
 
                 <form method="POST" action="{{ route('marketing.store') }}" class="space-y-4">
                     @csrf
@@ -68,11 +65,9 @@
 
                     <x-primary-button>Send campaign</x-primary-button>
                 </form>
-            </div>
+            </x-panel>
 
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6 space-y-4 transition-colors duration-200">
-                <h3 class="font-semibold text-gray-900 dark:text-gray-100">Campaign history</h3>
-
+            <x-panel icon="clock" title="Campaign history" accent="violet">
                 <div class="space-y-2">
                     @forelse ($campaigns as $campaign)
                         <div class="border border-gray-100 dark:border-gray-700 rounded-md px-4 py-3">
@@ -91,7 +86,7 @@
                 </div>
 
                 {{ $campaigns->links() }}
-            </div>
+            </x-panel>
         </div>
     </div>
 </x-app-layout>

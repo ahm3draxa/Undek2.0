@@ -36,7 +36,10 @@ class RegisteredUserController extends Controller
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            // max:72 matches bcrypt's actual effective input limit — bytes past that
+            // are silently ignored by the hasher, so without a cap here two different
+            // long passwords sharing the same first 72 bytes would hash identically.
+            'password' => ['required', 'confirmed', 'max:72', Rules\Password::defaults()],
         ]);
 
         $user = User::create([

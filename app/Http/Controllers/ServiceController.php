@@ -19,7 +19,7 @@ class ServiceController extends Controller
 
     public function create(): View
     {
-        $skills = Skill::orderBy('category')->orderBy('name')->get();
+        $skills = Skill::with('category')->orderBy('name')->get()->sortBy(fn ($skill) => $skill->category->name ?? '');
 
         return view('services.create', compact('skills'));
     }
@@ -47,7 +47,7 @@ class ServiceController extends Controller
 
     public function edit(Service $service): View
     {
-        $skills = Skill::orderBy('category')->orderBy('name')->get();
+        $skills = Skill::with('category')->orderBy('name')->get()->sortBy(fn ($skill) => $skill->category->name ?? '');
         $service->load('skills');
 
         return view('services.edit', compact('service', 'skills'));

@@ -9,6 +9,7 @@ class Milestone extends Model
 {
     protected $fillable = [
         'project_id',
+        'assigned_to',
         'title',
         'description',
         'status',
@@ -28,5 +29,10 @@ class Milestone extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function assignedTo(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
     }
 }

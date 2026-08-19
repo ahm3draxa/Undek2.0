@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Mail\MarketingCampaignMail;
 use App\Models\MarketingCampaign;
+use App\Models\MarketingCampaignRecipient;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,7 +27,13 @@ class MarketingController extends Controller implements HasMiddleware
         $campaigns = MarketingCampaign::with('sender')->withCount('recipients')->latest()->paginate(10);
         $clients = User::role('client')->orderBy('name')->get(['id', 'name', 'email']);
 
-        return view('marketing.index', compact('campaigns', 'clients'));
+        $stats = [
+            'campaigns' => MarketingCampaign::count(),
+            'recipients' => MarketingCampaignRecipient::count(),
+            'clients' => $clients->count(),
+        ];
+
+        return view('marketing.index', compact('campaigns', 'clients', 'stats'));
     }
 
     public function store(Request $request): RedirectResponse

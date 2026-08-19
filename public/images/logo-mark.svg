@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 94 112" fill="none" role="img" aria-label="Undek">
+  <defs>
+    <linearGradient id="undekMarkGradient" x1="7" y1="0" x2="87" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7c5cff"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+  </defs>
+  <path d="M15,24 L15,82 A16,16 0 0 0 47,82 L47,24 A16,16 0 0 1 79,24 L79,82"
+        stroke="url(#undekMarkGradient)" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

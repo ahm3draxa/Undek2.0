@@ -1,23 +1,23 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="flex items-center gap-2 font-space font-semibold text-xl text-gray-800 dark:text-gray-100 leading-tight">
-            <x-icon name="shield-check" class="w-5 h-5" style="color:#7c5cff" />
-            {{ __('My Certificates & Letters') }}
-        </h2>
+        <x-page-header icon="shield-check" title="My Certificates & Letters" subtitle="Self-serve, verifiable documents generated from your profile." />
     </x-slot>
 
     <div class="py-12">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            @if (session('status'))
-                <div class="rounded-lg border border-emerald-300 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-4 py-3 text-sm">
-                    {{ session('status') }}
-                </div>
-            @endif
+            <x-status-banner />
+
+            @php
+                $typeIcons = [
+                    \App\Models\Certificate::INTERNSHIP_CERTIFICATE => ['icon' => 'sparkles', 'accent' => 'pink'],
+                    \App\Models\Certificate::EXPERIENCE_LETTER => ['icon' => 'briefcase', 'accent' => 'violet'],
+                    \App\Models\Certificate::EARNINGS_LETTER => ['icon' => 'currency-dollar', 'accent' => 'green'],
+                ];
+            @endphp
 
             <div class="grid md:grid-cols-3 gap-4">
                 @foreach (\App\Models\Certificate::TYPES as $type => $label)
-                    <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-5 space-y-3 transition-colors duration-200">
-                        <h3 class="font-semibold text-gray-900 dark:text-gray-100 text-sm">{{ $label }}</h3>
+                    <x-panel :icon="$typeIcons[$type]['icon']" :title="$label" :accent="$typeIcons[$type]['accent']">
                         @if ($eligibility[$type])
                             <p class="text-xs text-gray-400">Generates a fresh, dated copy each time — older copies stay valid.</p>
                             <form method="POST" action="{{ route('certificates.generate', $type) }}">
@@ -35,12 +35,11 @@
                                 @endif
                             </p>
                         @endif
-                    </div>
+                    </x-panel>
                 @endforeach
             </div>
 
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6 space-y-4 transition-colors duration-200">
-                <h3 class="font-semibold text-gray-900 dark:text-gray-100">Issued so far</h3>
+            <x-panel icon="clock" title="Issued so far" accent="amber">
                 <ul class="space-y-2 text-sm text-gray-600 dark:text-gray-300">
                     @forelse ($certificates as $certificate)
                         <li class="border border-gray-100 dark:border-gray-700 rounded-md px-4 py-2 flex items-center justify-between gap-3">
@@ -54,7 +53,7 @@
                         <p class="text-gray-400">Nothing generated yet.</p>
                     @endforelse
                 </ul>
-            </div>
+            </x-panel>
         </div>
     </div>
 </x-app-layout>

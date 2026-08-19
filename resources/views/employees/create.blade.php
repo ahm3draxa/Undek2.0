@@ -1,14 +1,12 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="flex items-center gap-2 font-space font-semibold text-xl text-gray-800 dark:text-gray-100 leading-tight">
-            <x-icon name="plus" class="w-5 h-5" style="color:#7c5cff" />
-            {{ __('Add Employee') }}
-        </h2>
+        <x-page-header icon="plus" title="Add Employee" subtitle="Onboard a new hire — role, position, and starting compensation." />
     </x-slot>
 
     <div class="py-12">
         <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6 transition-colors duration-200">
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl p-6 transition-colors duration-200 relative overflow-hidden">
+                <div class="absolute top-0 left-0 right-0 h-[3px]" style="background:linear-gradient(135deg,#7c5cff,#22d3ee)"></div>
                 <form method="POST" action="{{ route('employees.store') }}" class="space-y-4"
                     x-data="{ compensationType: '{{ old('compensation_type', 'fixed_salary') }}' }">
                     @csrf

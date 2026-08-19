@@ -32,9 +32,16 @@ class QuoteRequestController extends Controller
             $query->where('client_id', $user->id);
         }
 
+        $stats = [
+            'total' => (clone $query)->count(),
+            'pending' => (clone $query)->where('status', 'pending')->count(),
+            'quoted' => (clone $query)->where('status', 'quoted')->count(),
+            'converted' => (clone $query)->where('status', 'converted')->count(),
+        ];
+
         $quoteRequests = $query->paginate(15);
 
-        return view('quote-requests.index', compact('quoteRequests'));
+        return view('quote-requests.index', compact('quoteRequests', 'stats'));
     }
 
     /**
@@ -126,13 +133,14 @@ class QuoteRequestController extends Controller
     {
         $this->authorizeView($quoteRequest);
 
-        $quoteRequest->load(['service.skills', 'client', 'assignedSpecialist', 'attachments', 'quotation', 'project', 'skills']);
+        $quoteRequest->load(['service.skills', 'client', 'assignedSpecialist', 'attachments', 'quotations.proposedBy', 'quotations.specialist', 'quotations.project', 'project', 'skills']);
 
-        [$candidateSpecialists, $skillMatched] = $this->candidatesForQuoteRequest(['specialist', 'ceo', 'admin'], $quoteRequest);
-        [$candidateExperts, $expertSkillMatched] = $this->candidatesForQuoteRequest(['expert', 'employee'], $quoteRequest);
+        [$candidateSpecialists, $skillMatched, $specialistEscalatedTo] = $this->candidatesForQuoteRequest(['specialist'], $quoteRequest);
+        [$candidateExperts, $expertSkillMatched, $expertEscalatedTo] = $this->candidatesForQuoteRequest(['expert', 'employee'], $quoteRequest);
 
         return view('quote-requests.show', compact(
-            'quoteRequest', 'candidateSpecialists', 'skillMatched', 'candidateExperts', 'expertSkillMatched'
+            'quoteRequest', 'candidateSpecialists', 'skillMatched', 'specialistEscalatedTo',
+            'candidateExperts', 'expertSkillMatched', 'expertEscalatedTo'
         ));
     }
 

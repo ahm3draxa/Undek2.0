@@ -1,14 +1,18 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="flex items-center gap-2 font-space font-semibold text-xl text-gray-800 dark:text-gray-100 leading-tight">
-            <x-icon name="currency-dollar" class="w-5 h-5" style="color:#7c5cff" />
-            {{ __('Payroll') }}
-        </h2>
+        <x-page-header icon="currency-dollar" title="Payroll" subtitle="Every salary change, bonus, deduction, and reimbursement on record." />
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-x-auto transition-colors duration-200">
+        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <x-stat-card icon="document-text" label="Total entries" :value="$stats['total']" accent="violet" />
+                <x-stat-card icon="currency-dollar" label="This month" value="${{ number_format($stats['this_month'], 2) }}" accent="green" />
+                <x-stat-card icon="sparkles" label="Bonuses" :value="$stats['bonuses']" accent="amber" />
+                <x-stat-card icon="clock" label="Deductions" :value="$stats['deductions']" accent="pink" />
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl overflow-x-auto transition-colors duration-200">
                 <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
                     <thead class="bg-gray-50 dark:bg-gray-900/40">
                         <tr class="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">

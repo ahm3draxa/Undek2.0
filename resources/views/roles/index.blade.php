@@ -1,18 +1,17 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="flex items-center gap-2 font-space font-semibold text-xl text-gray-800 dark:text-gray-100 leading-tight">
-            <x-icon name="shield-check" class="w-5 h-5" style="color:#7c5cff" />
-            {{ __('Roles & Permissions') }}
-        </h2>
+        <x-page-header icon="shield-check" title="Roles & Permissions" subtitle="What each role can see and do across the portal." />
     </x-slot>
 
     <div class="py-12">
         <div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            @if (session('status'))
-                <div class="rounded-lg border border-emerald-300 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-4 py-3 text-sm">
-                    {{ session('status') }}
-                </div>
-            @endif
+            <x-status-banner />
+
+            <div class="grid grid-cols-3 gap-4">
+                <x-stat-card icon="shield-check" label="Roles" :value="$roles->count()" accent="violet" />
+                <x-stat-card icon="check-circle" label="Permissions" :value="$permissions->count()" accent="green" />
+                <x-stat-card icon="users" label="Assigned people" :value="$roles->sum('users_count')" accent="pink" />
+            </div>
 
             <p class="text-sm text-gray-500 dark:text-gray-400">
                 Each role's checked permissions control what that role can see and do across the portal.
@@ -20,7 +19,8 @@
             </p>
 
             @foreach ($roles as $role)
-                <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6 transition-colors duration-200">
+                <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl p-6 transition-colors duration-200 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 right-0 h-[3px]" style="background:linear-gradient(135deg,#7c5cff,#22d3ee)"></div>
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-2">
                             <h3 class="font-space font-semibold text-gray-900 dark:text-gray-100"><x-role-label :name="$role->name" /></h3>
@@ -61,11 +61,7 @@
                 </div>
             @endforeach
 
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6 border border-dashed border-gray-300 dark:border-gray-600 transition-colors duration-200">
-                <h3 class="font-space font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-                    <x-icon name="plus" class="w-4 h-4" style="color:#7c5cff" />
-                    Create a custom role
-                </h3>
+            <x-panel icon="plus" title="Create a custom role" accent="amber">
                 <form method="POST" action="{{ route('roles.store') }}">
                     @csrf
                     <div class="mb-4">
@@ -83,7 +79,7 @@
                     </div>
                     <x-primary-button><x-icon name="plus" class="w-3.5 h-3.5" />Create role</x-primary-button>
                 </form>
-            </div>
+            </x-panel>
         </div>
     </div>
 </x-app-layout>

@@ -1,15 +1,12 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="flex items-center gap-2 font-space font-semibold text-xl text-gray-800 dark:text-gray-100 leading-tight">
-            <x-icon name="currency-dollar" class="w-5 h-5" style="color:#7c5cff" />
-            {{ __('Financial Reports') }}
-        </h2>
+        <x-page-header icon="currency-dollar" title="Financial Reports" subtitle="Revenue, payroll, and run-rate — filterable by date range." />
     </x-slot>
 
     <div class="py-12">
         <div class="max-w-6xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
-            <form method="GET" action="{{ route('reports.index') }}" class="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-5 flex flex-wrap items-end gap-4 transition-colors duration-200">
+            <form method="GET" action="{{ route('reports.index') }}" class="bg-white dark:bg-gray-800 shadow-sm rounded-xl p-5 flex flex-wrap items-end gap-4 transition-colors duration-200">
                 <div>
                     <x-input-label for="from" value="From" />
                     <x-text-input id="from" name="from" type="date" class="block mt-1" :value="request('from', $from->toDateString())" />
@@ -26,27 +23,13 @@
             </form>
 
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                @php
-                    $tiles = [
-                        ['Revenue (accepted quotes)', '$' . number_format($totalRevenue, 2)],
-                        ['Payroll paid out', '$' . number_format($totalPayroll, 2)],
-                        ['Net (revenue − payroll)', '$' . number_format($totalRevenue - $totalPayroll, 2)],
-                        ['Delivered projects', $deliveredProjects],
-                    ];
-                @endphp
-                @foreach ($tiles as [$label, $value])
-                    <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6 transition-colors duration-200">
-                        <div class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ $label }}</div>
-                        <div class="mt-3 text-2xl font-space font-bold" style="background:linear-gradient(120deg,#7c5cff,#22d3ee);-webkit-background-clip:text;background-clip:text;color:transparent">{{ $value }}</div>
-                    </div>
-                @endforeach
+                <x-stat-card icon="document-text" label="Revenue (accepted quotes)" value="${{ number_format($totalRevenue, 2) }}" accent="violet" />
+                <x-stat-card icon="currency-dollar" label="Payroll paid out" value="${{ number_format($totalPayroll, 2) }}" accent="amber" />
+                <x-stat-card icon="check-circle" label="Net (revenue − payroll)" value="${{ number_format($totalRevenue - $totalPayroll, 2) }}" accent="green" />
+                <x-stat-card icon="briefcase" label="Delivered projects" :value="$deliveredProjects" accent="pink" />
             </div>
 
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6 space-y-4 transition-colors duration-200">
-                <div class="flex items-center justify-between">
-                    <h3 class="font-semibold text-gray-900 dark:text-gray-100">Revenue by service</h3>
-                    <span class="text-xs text-gray-400">{{ $from->format('M j, Y') }} – {{ $to->format('M j, Y') }}</span>
-                </div>
+            <x-panel icon="document-text" title="Revenue by service" accent="violet" :subtitle="$from->format('M j, Y') . ' – ' . $to->format('M j, Y')">
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="text-left text-xs uppercase tracking-wider text-gray-400 border-b border-gray-100 dark:border-gray-700">
@@ -67,10 +50,9 @@
                         @endforelse
                     </tbody>
                 </table>
-            </div>
+            </x-panel>
 
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6 space-y-4 transition-colors duration-200">
-                <h3 class="font-semibold text-gray-900 dark:text-gray-100">Payroll by type</h3>
+            <x-panel icon="currency-dollar" title="Payroll by type" accent="amber">
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="text-left text-xs uppercase tracking-wider text-gray-400 border-b border-gray-100 dark:border-gray-700">
@@ -91,13 +73,12 @@
                         @endforelse
                     </tbody>
                 </table>
-            </div>
+            </x-panel>
 
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6 transition-colors duration-200">
-                <h3 class="font-semibold text-gray-900 dark:text-gray-100 mb-1">Standing fixed-salary run-rate</h3>
-                <p class="text-xs text-gray-400 mb-3">Sum of <code class="font-jetbrains">base_salary</code> across all active (no end date) fixed-salary employees — a rough always-on cost floor. Hourly and percentage-based compensation isn't included since it depends on hours/project value actually logged.</p>
+            <x-panel icon="bolt" title="Standing fixed-salary run-rate" accent="pink"
+                subtitle="Sum of base_salary across all active (no end date) fixed-salary employees — a rough always-on cost floor. Hourly and percentage-based compensation isn't included since it depends on hours/project value actually logged.">
                 <div class="text-2xl font-space font-bold text-gray-800 dark:text-gray-100">${{ number_format($activeCompensationRunRate, 2) }}</div>
-            </div>
+            </x-panel>
 
         </div>
     </div>

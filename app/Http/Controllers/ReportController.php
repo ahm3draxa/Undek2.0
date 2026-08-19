@@ -77,10 +77,21 @@ class ReportController extends Controller
         ]));
     }
 
+    /**
+     * Malformed 'from'/'to' query params (hand-edited URLs, or someone probing
+     * for a crash) used to reach Carbon::parse() unvalidated and throw an
+     * uncaught 500 — validate first so bad input just falls back to the
+     * default range instead of blowing up the page.
+     */
     private function range(Request $request): array
     {
-        $from = $request->filled('from') ? Carbon::parse($request->string('from')) : now()->startOfYear();
-        $to = $request->filled('to') ? Carbon::parse($request->string('to'))->endOfDay() : now()->endOfDay();
+        $validated = $request->validate([
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date'],
+        ]);
+
+        $from = ! empty($validated['from']) ? Carbon::parse($validated['from']) : now()->startOfYear();
+        $to = ! empty($validated['to']) ? Carbon::parse($validated['to'])->endOfDay() : now()->endOfDay();
 
         return [$from, $to];
     }

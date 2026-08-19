@@ -9,7 +9,9 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MarketingController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\MilestoneController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PayrollController;
+use App\Http\Controllers\PositionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectFeedbackController;
@@ -21,6 +23,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\SkillController;
+use App\Http\Controllers\TwoFactorAuthenticationController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -41,6 +44,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/stats', [DashboardController::class, 'stats'])->name('dashboard.stats');
 
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+
     // Self-service certificates & letters.
     Route::get('/certificates', [CertificateController::class, 'index'])->name('certificates.index');
     Route::post('/certificates/{type}', [CertificateController::class, 'generate'])->name('certificates.generate');
@@ -60,6 +67,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/quote-requests/{quoteRequest}/quotation', [QuotationController::class, 'store'])->name('quotations.store');
     });
 
+    // Client-side counter-proposal — no 'send quotation' permission needed, the
+    // controller checks the requester is this request's own client.
+    Route::post('/quote-requests/{quoteRequest}/counter-proposal', [QuotationController::class, 'proposeCounter'])->name('quotations.counter');
+
     Route::post('/quotations/{quotation}/respond', [QuotationController::class, 'respond'])->name('quotations.respond');
 
     Route::middleware('permission:finalize project')->group(function () {
@@ -71,11 +82,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
     Route::get('/projects/{project}/messages', [MessageController::class, 'projectIndex'])->name('projects.messages.index');
     Route::post('/projects/{project}/messages', [MessageController::class, 'storeProjectMessage'])->name('projects.messages.store');
+    Route::get('/projects/{project}/team-messages', [MessageController::class, 'projectTeamIndex'])->name('projects.team-messages.index');
+    Route::post('/projects/{project}/team-messages', [MessageController::class, 'storeProjectTeamMessage'])->name('projects.team-messages.store');
     Route::post('/projects/{project}/feedback', [ProjectFeedbackController::class, 'store'])->name('projects.feedback.store');
     Route::patch('/projects/{project}', [ProjectController::class, 'update'])->name('projects.update');
 
     Route::post('/projects/{project}/milestones', [MilestoneController::class, 'store'])->name('milestones.store');
     Route::patch('/projects/{project}/milestones/{milestone}', [MilestoneController::class, 'update'])->name('milestones.update');
+    Route::patch('/projects/{project}/milestones/{milestone}/assign', [MilestoneController::class, 'assign'])->name('milestones.assign');
     Route::delete('/projects/{project}/milestones/{milestone}', [MilestoneController::class, 'destroy'])->name('milestones.destroy');
 
     Route::middleware('permission:assign project team')->group(function () {
@@ -97,11 +111,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/services/{service}', [ServiceController::class, 'destroy'])->name('services.destroy');
     });
 
-    // Reference data — departments, positions, skill categories used across dropdowns.
+    // Reference data — departments, skill categories used across dropdowns.
     Route::middleware('permission:manage employees')->group(function () {
         Route::get('/reference-data', [ReferenceDataController::class, 'index'])->name('reference-data.index');
         Route::post('/reference-data/{type}', [ReferenceDataController::class, 'store'])->name('reference-data.store');
         Route::delete('/reference-data/{type}/{id}', [ReferenceDataController::class, 'destroy'])->name('reference-data.destroy');
+    });
+
+    // Positions — department-scoped rank ladders, each with its own permission set.
+    Route::middleware('permission:manage employees')->group(function () {
+        Route::get('/positions', [PositionController::class, 'index'])->name('positions.index');
+        Route::get('/positions/create', [PositionController::class, 'create'])->name('positions.create');
+        Route::post('/positions', [PositionController::class, 'store'])->name('positions.store');
+        Route::get('/positions/{position}/edit', [PositionController::class, 'edit'])->name('positions.edit');
+        Route::put('/positions/{position}', [PositionController::class, 'update'])->name('positions.update');
+        Route::delete('/positions/{position}', [PositionController::class, 'destroy'])->name('positions.destroy');
     });
 
     // Employee & payroll management.
@@ -113,6 +137,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/employees/{employee}/edit', [EmployeeController::class, 'edit'])->name('employees.edit');
         Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->name('employees.update');
         Route::post('/employees/{employee}/promote', [EmployeeController::class, 'promote'])->name('employees.promote');
+        Route::post('/employees/{employee}/transfer', [EmployeeController::class, 'transfer'])->name('employees.transfer');
+        Route::post('/employees/{employee}/positions', [EmployeeController::class, 'addSecondaryPosition'])->name('employees.positions.store');
+        Route::delete('/employees/{employee}/positions/{position}', [EmployeeController::class, 'removeSecondaryPosition'])->name('employees.positions.destroy');
         Route::post('/employees/{employee}/contributions', [EmployeeController::class, 'logContribution'])->name('employees.contributions.store');
         Route::post('/employees/{employee}/skills', [EmployeeController::class, 'addSkill'])->name('employees.skills.store');
         Route::delete('/employees/{employee}/skills/{skill}', [EmployeeController::class, 'removeSkill'])->name('employees.skills.destroy');
@@ -143,6 +170,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::patch('/users/{user}/role', [UserController::class, 'updateRole'])->name('users.role');
         Route::patch('/users/{user}/toggle-active', [UserController::class, 'toggleActive'])->name('users.toggle-active');
+        Route::post('/users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
     });
 
     // Roles & permissions — what each role is allowed to do.
@@ -159,6 +187,12 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::delete('/profile/avatar', [ProfileController::class, 'destroyAvatar'])->name('profile.avatar.destroy');
+
+    // Two-factor authentication — profile-side setup and management.
+    Route::post('/profile/two-factor', [TwoFactorAuthenticationController::class, 'enable'])->name('two-factor.enable');
+    Route::post('/profile/two-factor/confirm', [TwoFactorAuthenticationController::class, 'confirm'])->name('two-factor.confirm');
+    Route::post('/profile/two-factor/recovery-codes', [TwoFactorAuthenticationController::class, 'regenerateRecoveryCodes'])->name('two-factor.recovery-codes');
+    Route::delete('/profile/two-factor', [TwoFactorAuthenticationController::class, 'destroy'])->name('two-factor.destroy');
 });
 
 require __DIR__.'/auth.php';

@@ -34,15 +34,20 @@ class LoginRequest extends FormRequest
     }
 
     /**
-     * Attempt to authenticate the request's credentials.
+     * Attempt to authenticate the request's credentials. Returns true when the
+     * credentials are valid but a two-factor challenge must be completed before
+     * the session is fully logged in — the caller should redirect to the
+     * challenge screen instead of the intended destination in that case.
      *
      * @throws ValidationException
      */
-    public function authenticate(): void
+    public function authenticate(): bool
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        $credentials = $this->only('email', 'password');
+
+        if (! Auth::validate($credentials)) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
@@ -51,6 +56,20 @@ class LoginRequest extends FormRequest
         }
 
         RateLimiter::clear($this->throttleKey());
+
+        $user = Auth::getProvider()->retrieveByCredentials($credentials);
+
+        if ($user->hasEnabledTwoFactorAuthentication()) {
+            $this->session()->regenerate();
+            $this->session()->put('login.2fa.id', $user->id);
+            $this->session()->put('login.2fa.remember', $this->boolean('remember'));
+
+            return true;
+        }
+
+        Auth::login($user, $this->boolean('remember'));
+
+        return false;
     }
 
     /**

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\FiltersBySkill;
+use App\Http\Controllers\Concerns\NotifiesThreadParticipants;
+use App\Models\Position;
 use App\Models\Project;
 use App\Models\Quotation;
 use Illuminate\Http\RedirectResponse;
@@ -11,7 +13,7 @@ use Illuminate\View\View;
 
 class ProjectController extends Controller
 {
-    use FiltersBySkill;
+    use FiltersBySkill, NotifiesThreadParticipants;
 
     public function index(Request $request): View
     {
@@ -27,9 +29,16 @@ class ProjectController extends Controller
             });
         }
 
+        $stats = [
+            'total' => (clone $query)->count(),
+            'in_progress' => (clone $query)->where('status', 'in_progress')->count(),
+            'delivered' => (clone $query)->where('status', 'delivered')->count(),
+            'pending' => (clone $query)->where('status', 'pending_assignment')->count(),
+        ];
+
         $projects = $query->paginate(15);
 
-        return view('projects.index', compact('projects'));
+        return view('projects.index', compact('projects', 'stats'));
     }
 
     public function show(Request $request, Project $project): View
@@ -42,13 +51,23 @@ class ProjectController extends Controller
 
         abort_unless($allowed, 403);
 
-        $project->load(['client', 'leadExpert', 'teamMembers.user', 'milestones', 'contributions.user', 'quotation', 'quoteRequest.service', 'quoteRequest.skills', 'feedbacks.author']);
+        $project->load(['client', 'leadExpert', 'teamMembers.user', 'milestones.assignedTo', 'contributions.user', 'quotation', 'quoteRequest.service', 'quoteRequest.skills', 'feedbacks.author']);
 
-        [$experts, $skillMatched] = $project->quoteRequest
-            ? $this->candidatesForQuoteRequest(['expert', 'employee'], $project->quoteRequest)
-            : $this->candidatesForSkills(['expert', 'employee'], collect());
+        // Interns are included here (not just expert/employee) so a specialist or lead
+        // can pull in their own interns for department-specific work — e.g. design
+        // assets vs. development integration — and then delegate individual
+        // milestones to them once they're on the team.
+        [$experts, $skillMatched, $expertEscalatedTo] = $project->quoteRequest
+            ? $this->candidatesForQuoteRequest(['expert', 'employee', 'intern'], $project->quoteRequest)
+            : $this->candidatesForSkills(['expert', 'employee', 'intern'], collect());
 
-        return view('projects.show', compact('project', 'experts', 'skillMatched'));
+        // Team-role options are drawn from the existing position taxonomy (grouped by
+        // department) instead of free text, so "role on this project" stays consistent
+        // with real job titles rather than one-off typed labels.
+        $positionsByDepartment = Position::with('department')->orderByDesc('rank')->get()
+            ->groupBy(fn (Position $position) => $position->department?->name ?? 'Company-wide');
+
+        return view('projects.show', compact('project', 'experts', 'skillMatched', 'expertEscalatedTo', 'positionsByDepartment'));
     }
 
     /**
@@ -92,6 +111,23 @@ class ProjectController extends Controller
                 'status' => 'pending',
                 'sort_order' => $index,
             ]);
+        }
+
+        // The specialist who worked this deal is carried over onto the execution
+        // team automatically — otherwise the handoff from sales to delivery
+        // silently drops the one person with the most context on what the client
+        // actually wants. Skipped if they're also being made the lead, since
+        // they're already reachable on the project either way.
+        if ($quotation->specialist_id && (int) $quotation->specialist_id !== (int) $project->lead_expert_id) {
+            $project->teamMembers()->firstOrCreate(
+                ['user_id' => $quotation->specialist_id],
+                ['role_on_project' => 'Specialist', 'added_by' => $request->user()->id]
+            );
+
+            $this->postToThread($project, $request->user(), sprintf(
+                '%s carried over %s from the original quotation as a team member.',
+                $request->user()->name, $quotation->specialist->name
+            ), 'event', 'team');
         }
 
         $quoteRequest->update(['status' => 'converted']);

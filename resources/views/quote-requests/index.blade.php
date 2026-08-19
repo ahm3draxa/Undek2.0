@@ -1,20 +1,20 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="flex items-center gap-2 font-space font-semibold text-xl text-gray-800 dark:text-gray-100 leading-tight">
-            <x-icon name="document-text" class="w-5 h-5" style="color:#7c5cff" />
-            {{ __('Quote Requests') }}
-        </h2>
+        <x-page-header icon="document-text" title="Quote Requests" subtitle="Incoming work, routed by skill to the right specialist." />
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
-            @if (session('status'))
-                <div class="rounded-lg border border-emerald-300 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-4 py-3 text-sm">
-                    {{ session('status') }}
-                </div>
-            @endif
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+            <x-status-banner />
 
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-x-auto transition-colors duration-200">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <x-stat-card icon="document-text" label="Total" :value="$stats['total']" accent="violet" />
+                <x-stat-card icon="clock" label="Pending" :value="$stats['pending']" accent="amber" />
+                <x-stat-card icon="currency-dollar" label="Quoted" :value="$stats['quoted']" accent="pink" />
+                <x-stat-card icon="check-circle" label="Converted" :value="$stats['converted']" accent="green" />
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl overflow-x-auto transition-colors duration-200">
                 <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
                     <thead class="bg-gray-50 dark:bg-gray-900/40">
                         <tr class="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">

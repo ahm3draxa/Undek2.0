@@ -6,6 +6,7 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <title>{{ $title ?? __('Welcome') }} — {{ config('app.name', 'undek') }}</title>
+        <link rel="icon" type="image/svg+xml" href="{{ asset('images/logo-mark.svg') }}?v=2">
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -45,9 +46,8 @@
             <div class="relative z-10 w-full max-w-md">
                 <!-- Logo -->
                 <div class="flex justify-center mb-8" style="animation: riseIn .6s ease both">
-                    <a href="/" class="inline-flex items-center gap-2.5">
-                        <span class="block w-7 h-7 rounded-lg rotate-12" style="background:linear-gradient(135deg,#7c5cff,#22d3ee);box-shadow:0 0 20px rgba(124,92,255,.65)"></span>
-                        <span class="font-space font-bold text-xl tracking-tight text-[#f5f5fa]">undek</span>
+                    <a href="/" class="inline-flex items-center">
+                        <x-logo-lockup glow class="text-xl tracking-tight text-[#f5f5fa]" />
                     </a>
                 </div>
 

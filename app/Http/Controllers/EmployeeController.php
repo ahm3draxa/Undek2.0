@@ -27,7 +27,14 @@ class EmployeeController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('employees.index', compact('employees'));
+        $stats = [
+            'total' => $employees->count(),
+            'interns' => $employees->filter(fn ($e) => $e->employeeProfile->employment_type === 'intern')->count(),
+            'departments' => $employees->pluck('employeeProfile.department_id')->filter()->unique()->count(),
+            'unassigned' => $employees->filter(fn ($e) => ! $e->employeeProfile->position_id)->count(),
+        ];
+
+        return view('employees.index', compact('employees', 'stats'));
     }
 
     public function create(): View
@@ -98,6 +105,8 @@ class EmployeeController extends Controller
             'is_public' => $request->boolean('is_public'),
         ]);
 
+        $employee->syncPermissionsFromPositions();
+
         event(new Registered($employee));
 
         return redirect()->route('employees.show', $employee)->with([
@@ -108,12 +117,27 @@ class EmployeeController extends Controller
     public function show(User $employee): View
     {
         $employee->load([
-            'employeeProfile.manager', 'employeeProfile.department', 'employeeProfile.position',
-            'roles', 'promotions.promotedBy', 'promotions.oldPosition', 'promotions.newPosition',
+            'employeeProfile.manager', 'employeeProfile.department', 'employeeProfile.position.department', 'employeeProfile.position.skills',
+            'roles', 'promotions.promotedBy', 'promotions.oldPosition.department', 'promotions.newPosition.department',
             'contributions.project', 'payrollAdjustments', 'skills.category',
+            'secondaryPositions.department', 'secondaryPositions.skills',
         ]);
         $availableSkills = Skill::with('category')->orderBy('name')->get();
         $positions = Position::orderBy('name')->get();
+        $departments = Department::orderBy('name')->get();
+
+        $currentPosition = $employee->employeeProfile?->position;
+        $ladderPositions = $currentPosition
+            ? Position::where('department_id', $currentPosition->department_id)->where('id', '!=', $currentPosition->id)->orderByDesc('rank')->get()
+            : collect();
+
+        $heldPositionIds = $employee->allPositions()->pluck('id');
+        $addablePositions = $positions->whereNotIn('id', $heldPositionIds)->values();
+
+        // Skill gap: what every held position expects vs. what's actually on the employee's profile.
+        $employeeSkillIds = $employee->skills->pluck('id');
+        $expectedSkills = $employee->allPositions()->flatMap->skills->unique('id');
+        $missingSkills = $expectedSkills->reject(fn ($skill) => $employeeSkillIds->contains($skill->id))->values();
 
         $clientRating = ProjectFeedback::where('audience', ProjectFeedback::CLIENT_TO_UNDEK)
             ->whereHas('project', fn ($q) => $q->where('lead_expert_id', $employee->id))
@@ -122,17 +146,18 @@ class EmployeeController extends Controller
             ->whereHas('project', fn ($q) => $q->where('lead_expert_id', $employee->id))
             ->count();
 
-        return view('employees.show', compact('employee', 'availableSkills', 'positions', 'clientRating', 'clientRatingCount'));
+        return view('employees.show', compact(
+            'employee', 'availableSkills', 'positions', 'departments', 'ladderPositions', 'addablePositions', 'missingSkills',
+            'clientRating', 'clientRatingCount'
+        ));
     }
 
     public function edit(User $employee): View
     {
-        $employee->load('employeeProfile');
+        $employee->load('employeeProfile.position', 'employeeProfile.department');
         $managers = User::whereHas('employeeProfile')->with(['employeeProfile.position', 'roles'])->where('id', '!=', $employee->id)->orderBy('name')->get();
-        $departments = Department::orderBy('name')->get();
-        $positions = Position::orderBy('name')->get();
 
-        return view('employees.edit', compact('employee', 'managers', 'departments', 'positions'));
+        return view('employees.edit', compact('employee', 'managers'));
     }
 
     /**
@@ -141,8 +166,7 @@ class EmployeeController extends Controller
     public function update(Request $request, User $employee): RedirectResponse
     {
         $data = $request->validate([
-            'position_id' => ['nullable', 'exists:positions,id'],
-            'department_id' => ['nullable', 'exists:departments,id'],
+            'role' => ['nullable', 'in:'.implode(',', self::ONBOARD_ROLES)],
             'employment_type' => ['required', 'in:full_time,part_time,contractor,intern'],
             'hire_date' => ['nullable', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:hire_date'],
@@ -159,6 +183,17 @@ class EmployeeController extends Controller
 
         abort_if((int) ($data['manager_id'] ?? 0) === $employee->id, 422, 'An employee cannot manage themselves.');
 
+        $role = $data['role'] ?? null;
+        unset($data['role']);
+
+        if ($role && $request->user()->can('manage users') && ! $employee->hasRole($role)) {
+            if ($employee->id === $request->user()->id && $role !== 'ceo' && $employee->hasRole('ceo')) {
+                abort_if(User::role('ceo')->count() <= 1, 422, 'At least one CEO account must remain.');
+            }
+
+            $employee->syncRoles([$role]);
+        }
+
         $data['is_public'] = $request->boolean('is_public');
 
         EmployeeProfile::updateOrCreate(['user_id' => $employee->id], $data);
@@ -167,40 +202,120 @@ class EmployeeController extends Controller
     }
 
     /**
-     * Record a promotion / role or salary change for an employee.
+     * Promote or demote within the employee's current department — the new position
+     * must belong to the same department, and direction is derived from comparing ranks.
      */
     public function promote(Request $request, User $employee): RedirectResponse
     {
+        $profile = $employee->employeeProfile;
+        abort_unless($profile?->position, 422, 'This employee has no starting position yet — use Transfer to assign one.');
+
         $data = $request->validate([
-            'direction' => ['required', 'in:promotion,demotion,lateral'],
             'new_position_id' => ['required', 'exists:positions,id'],
             'new_salary' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
             'effective_date' => ['required', 'date'],
         ]);
 
-        $profile = $employee->employeeProfile;
+        $newPosition = Position::findOrFail($data['new_position_id']);
+        abort_unless($newPosition->department_id === $profile->position->department_id, 422,
+            'A promotion or demotion has to stay within the same department — use Transfer to move departments.');
+
+        $direction = match (true) {
+            $newPosition->rank > $profile->position->rank => 'promotion',
+            $newPosition->rank < $profile->position->rank => 'demotion',
+            default => 'lateral',
+        };
 
         EmployeePromotion::create([
             'user_id' => $employee->id,
-            'old_position_id' => $profile?->position_id,
-            'new_position_id' => $data['new_position_id'],
-            'direction' => $data['direction'],
-            'old_salary' => $profile?->base_salary,
-            'new_salary' => $data['new_salary'] ?? $profile?->base_salary,
+            'old_position_id' => $profile->position_id,
+            'new_position_id' => $newPosition->id,
+            'direction' => $direction,
+            'old_salary' => $profile->base_salary,
+            'new_salary' => $data['new_salary'] ?? $profile->base_salary,
             'notes' => $data['notes'] ?? null,
             'promoted_by' => $request->user()->id,
             'effective_date' => $data['effective_date'],
         ]);
 
-        if ($profile) {
-            $profile->update([
-                'position_id' => $data['new_position_id'],
-                'base_salary' => $data['new_salary'] ?? $profile->base_salary,
-            ]);
-        }
+        $profile->update([
+            'position_id' => $newPosition->id,
+            'base_salary' => $data['new_salary'] ?? $profile->base_salary,
+        ]);
 
-        return redirect()->route('employees.show', $employee)->with('status', 'Promotion recorded.');
+        $employee->syncPermissionsFromPositions();
+
+        return redirect()->route('employees.show', $employee)->with('status', ucfirst($direction).' recorded.');
+    }
+
+    /**
+     * Move an employee to a different department, assigning a position within it manually
+     * (ranks aren't comparable across departments, so this doesn't imply promotion/demotion).
+     */
+    public function transfer(Request $request, User $employee): RedirectResponse
+    {
+        $data = $request->validate([
+            'department_id' => ['required', 'exists:departments,id'],
+            'new_position_id' => ['required', 'exists:positions,id'],
+            'new_salary' => ['nullable', 'numeric', 'min:0'],
+            'notes' => ['nullable', 'string'],
+            'effective_date' => ['required', 'date'],
+        ]);
+
+        $newPosition = Position::findOrFail($data['new_position_id']);
+        abort_unless((string) $newPosition->department_id === (string) $data['department_id'], 422, 'Selected position does not belong to the chosen department.');
+
+        $profile = $employee->employeeProfile;
+        abort_unless($profile, 422, 'This employee has no profile yet.');
+
+        EmployeePromotion::create([
+            'user_id' => $employee->id,
+            'old_position_id' => $profile->position_id,
+            'new_position_id' => $newPosition->id,
+            'direction' => 'transfer',
+            'old_salary' => $profile->base_salary,
+            'new_salary' => $data['new_salary'] ?? $profile->base_salary,
+            'notes' => $data['notes'] ?? null,
+            'promoted_by' => $request->user()->id,
+            'effective_date' => $data['effective_date'],
+        ]);
+
+        $profile->update([
+            'department_id' => $data['department_id'],
+            'position_id' => $newPosition->id,
+            'base_salary' => $data['new_salary'] ?? $profile->base_salary,
+        ]);
+
+        $employee->syncPermissionsFromPositions();
+
+        return redirect()->route('employees.show', $employee)->with('status', 'Transferred.');
+    }
+
+    /**
+     * Add a secondary position — held alongside the primary one, e.g. covering another
+     * function part-time. Contributes its own permissions to the employee's effective set.
+     */
+    public function addSecondaryPosition(Request $request, User $employee): RedirectResponse
+    {
+        $data = $request->validate([
+            'position_id' => ['required', 'exists:positions,id'],
+        ]);
+
+        abort_if($employee->employeeProfile?->position_id === (int) $data['position_id'], 422, 'That is already their primary position.');
+
+        $employee->secondaryPositions()->syncWithoutDetaching([$data['position_id'] => ['assigned_at' => now()]]);
+        $employee->syncPermissionsFromPositions();
+
+        return redirect()->route('employees.show', $employee)->with('status', 'Secondary position added.');
+    }
+
+    public function removeSecondaryPosition(User $employee, Position $position): RedirectResponse
+    {
+        $employee->secondaryPositions()->detach($position->id);
+        $employee->syncPermissionsFromPositions();
+
+        return redirect()->route('employees.show', $employee)->with('status', 'Secondary position removed.');
     }
 
     /**

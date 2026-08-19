@@ -80,4 +80,17 @@ class EmployeeProfile extends Model
     {
         return $this->belongsTo(Department::class);
     }
+
+    protected static function booted(): void
+    {
+        // department_id must never drift from the assigned position's department — the
+        // position is the single source of truth once one is set. This runs at the model
+        // layer (not just in controllers) so no future write path can reintroduce the split
+        // that let department and position disagree with each other.
+        static::saving(function (self $profile) {
+            if ($profile->position_id && $profile->isDirty('position_id')) {
+                $profile->department_id = Position::find($profile->position_id)?->department_id ?? $profile->department_id;
+            }
+        });
+    }
 }

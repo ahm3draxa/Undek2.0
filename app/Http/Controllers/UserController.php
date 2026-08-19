@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Role;
 
@@ -17,7 +19,13 @@ class UserController extends Controller
         $users = User::with('roles')->orderBy('name')->paginate(20);
         $roles = Role::orderBy('name')->get();
 
-        return view('users.index', compact('users', 'roles'));
+        $stats = [
+            'total' => User::count(),
+            'active' => User::where('is_active', true)->count(),
+            'deactivated' => User::where('is_active', false)->count(),
+        ];
+
+        return view('users.index', compact('users', 'roles', 'stats'));
     }
 
     /**
@@ -37,6 +45,19 @@ class UserController extends Controller
         $user->syncRoles([$data['role']]);
 
         return back()->with('status', "{$user->name} is now {$data['role']}.");
+    }
+
+    /**
+     * Issue a new temporary password for a user — shown once, same pattern as onboarding.
+     * Doesn't depend on outbound mail being configured, unlike a reset-link email.
+     */
+    public function resetPassword(User $user): RedirectResponse
+    {
+        $temporaryPassword = Str::password(14);
+
+        $user->update(['password' => Hash::make($temporaryPassword)]);
+
+        return back()->with('status', "Password reset for {$user->name}. Temporary password: {$temporaryPassword} — share this securely, it won't be shown again.");
     }
 
     public function toggleActive(Request $request, User $user): RedirectResponse

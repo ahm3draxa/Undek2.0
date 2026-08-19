@@ -6,6 +6,7 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <title>{{ config('app.name', 'Laravel') }}</title>
+        <link rel="icon" type="image/svg+xml" href="{{ asset('images/logo-mark.svg') }}?v=2">
 
         <!-- Dark mode: applied before first paint to avoid a flash of the wrong theme -->
         <script>
@@ -19,6 +20,11 @@
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        {{-- Space Grotesk backs the `font-space` utility used throughout the app (headings, the
+             logo) — without loading it here, every font-space element silently fell back to a
+             generic sans on every authenticated page. --}}
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])

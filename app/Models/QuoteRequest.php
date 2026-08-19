@@ -59,9 +59,22 @@ class QuoteRequest extends Model
         return $this->belongsToMany(Skill::class, 'quote_request_skill');
     }
 
-    public function quotation(): HasOne
+    /**
+     * Full negotiation history — a specialist's initial quote, any client
+     * counter-proposals, and any revised specialist offers, oldest first.
+     */
+    public function quotations(): HasMany
     {
-        return $this->hasOne(Quotation::class);
+        return $this->hasMany(Quotation::class)->orderBy('id');
+    }
+
+    /**
+     * The current/most recent proposal on the table — the one either side
+     * can currently act on (accept, reject, or counter once it's settled).
+     */
+    public function latestQuotation(): HasOne
+    {
+        return $this->hasOne(Quotation::class)->latestOfMany();
     }
 
     public function messages(): MorphMany

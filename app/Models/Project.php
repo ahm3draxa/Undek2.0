@@ -71,6 +71,22 @@ class Project extends Model
         return $this->morphMany(Message::class, 'messageable')->with('user')->latest('id');
     }
 
+    /**
+     * The client-visible thread — same audience as before the team channel existed.
+     */
+    public function clientMessages(): MorphMany
+    {
+        return $this->messages()->where('channel', 'client');
+    }
+
+    /**
+     * Internal-only thread for staff to coordinate — never shown to the client.
+     */
+    public function teamMessages(): MorphMany
+    {
+        return $this->messages()->where('channel', 'team');
+    }
+
     public function feedbacks(): HasMany
     {
         return $this->hasMany(ProjectFeedback::class);

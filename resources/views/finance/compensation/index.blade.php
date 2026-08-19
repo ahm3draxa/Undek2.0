@@ -1,20 +1,20 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="flex items-center gap-2 font-space font-semibold text-xl text-gray-800 dark:text-gray-100 leading-tight">
-            <x-icon name="currency-dollar" class="w-5 h-5" style="color:#7c5cff" />
-            {{ __('Compensation') }}
-        </h2>
+        <x-page-header icon="currency-dollar" title="Compensation" subtitle="Rates, types, and adjustment history across everyone onboarded." />
     </x-slot>
 
     <div class="py-12">
         <div class="max-w-6xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            @if (session('status'))
-                <div class="rounded-lg border border-emerald-300 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-4 py-3 text-sm">
-                    {{ session('status') }}
-                </div>
-            @endif
+            <x-status-banner />
 
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6 transition-colors duration-200">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <x-stat-card icon="users" label="Employees" :value="$stats['total']" accent="violet" />
+                <x-stat-card icon="clock" label="Hourly" :value="$stats['hourly']" accent="green" />
+                <x-stat-card icon="currency-dollar" label="Fixed salary" :value="$stats['salaried']" accent="pink" />
+                <x-stat-card icon="bolt" label="Adjustments this month" :value="$stats['adjustments_this_month']" accent="amber" />
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl p-6 transition-colors duration-200">
                 <p class="text-xs text-gray-400 mb-4">Every onboarded employee, their department/position, and current standing compensation. Open one to review its full adjustment history or apply an increase/decrease.</p>
 
                 <div class="overflow-x-auto">

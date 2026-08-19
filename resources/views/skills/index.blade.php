@@ -1,18 +1,17 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="flex items-center gap-2 font-space font-semibold text-xl text-gray-800 dark:text-gray-100 leading-tight">
-            <x-icon name="sparkles" class="w-5 h-5" style="color:#7c5cff" />
-            {{ __('Skills') }}
-        </h2>
+        <x-page-header icon="sparkles" title="Skills" subtitle="The master skill list used to route work to the right people." />
     </x-slot>
 
     <div class="py-12">
         <div class="max-w-3xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            @if (session('status'))
-                <div class="rounded-lg border border-emerald-300 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-4 py-3 text-sm">
-                    {{ session('status') }}
-                </div>
-            @endif
+            <x-status-banner />
+
+            <div class="grid grid-cols-3 gap-4">
+                <x-stat-card icon="sparkles" label="Total skills" :value="$skills->count()" accent="violet" />
+                <x-stat-card icon="building-office" label="Categories" :value="$categories->count()" accent="pink" />
+                <x-stat-card icon="users" label="Skills in use" :value="$skills->where('users_count', '>', 0)->count()" accent="green" />
+            </div>
 
             <p class="text-sm text-gray-500 dark:text-gray-400">
                 This is the master skill list. Attach skills (with a level) to people from their
@@ -21,7 +20,7 @@
                 only matching people will show up when assigning a specialist, lead expert, or team member.
             </p>
 
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-x-auto transition-colors duration-200">
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl overflow-x-auto transition-colors duration-200">
                 <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
                     <thead class="bg-gray-50 dark:bg-gray-900/40">
                         <tr class="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -51,11 +50,7 @@
                 </table>
             </div>
 
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6 border border-dashed border-gray-300 dark:border-gray-600 transition-colors duration-200">
-                <h3 class="font-space font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-                    <x-icon name="plus" class="w-4 h-4" style="color:#7c5cff" />
-                    Add a skill
-                </h3>
+            <x-panel icon="plus" title="Add a skill" accent="amber">
                 <form method="POST" action="{{ route('skills.store') }}" class="grid grid-cols-2 gap-3">
                     @csrf
                     <div>
@@ -79,7 +74,7 @@
                         <x-primary-button><x-icon name="plus" class="w-3.5 h-3.5" />Add skill</x-primary-button>
                     </div>
                 </form>
-            </div>
+            </x-panel>
         </div>
     </div>
 </x-app-layout>

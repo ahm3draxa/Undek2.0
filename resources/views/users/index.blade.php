@@ -1,20 +1,19 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="flex items-center gap-2 font-space font-semibold text-xl text-gray-800 dark:text-gray-100 leading-tight">
-            <x-icon name="shield-check" class="w-5 h-5" style="color:#7c5cff" />
-            {{ __('Users & Roles') }}
-        </h2>
+        <x-page-header icon="shield-check" title="Users & Roles" subtitle="Every account on the platform and what they're allowed to do." />
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-4">
-            @if (session('status'))
-                <div class="rounded-lg border border-emerald-300 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-4 py-3 text-sm">
-                    {{ session('status') }}
-                </div>
-            @endif
+        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-6">
+            <x-status-banner />
 
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-x-auto transition-colors duration-200">
+            <div class="grid grid-cols-3 gap-4">
+                <x-stat-card icon="users" label="Total users" :value="$stats['total']" accent="violet" />
+                <x-stat-card icon="check-circle" label="Active" :value="$stats['active']" accent="green" />
+                <x-stat-card icon="x-circle" label="Deactivated" :value="$stats['deactivated']" accent="pink" />
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl overflow-x-auto transition-colors duration-200">
                 <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
                     <thead class="bg-gray-50 dark:bg-gray-900/40">
                         <tr class="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -48,15 +47,24 @@
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 text-right">
-                                    @unless ($user->id === auth()->id())
-                                        <form method="POST" action="{{ route('users.toggle-active', $user) }}">
-                                            @csrf @method('PATCH')
+                                    <div class="flex items-center justify-end gap-4">
+                                        <form method="POST" action="{{ route('users.reset-password', $user) }}" onsubmit="return confirm('Reset {{ $user->name }}\'s password? Their current password stops working immediately.')">
+                                            @csrf
                                             <button class="inline-flex items-center gap-1 text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 hover:underline">
-                                                <x-icon :name="$user->is_active ? 'x-circle' : 'check-circle'" class="w-4 h-4" />
-                                                {{ $user->is_active ? 'Deactivate' : 'Reactivate' }}
+                                                <x-icon name="key" class="w-4 h-4" />
+                                                Reset password
                                             </button>
                                         </form>
-                                    @endunless
+                                        @unless ($user->id === auth()->id())
+                                            <form method="POST" action="{{ route('users.toggle-active', $user) }}">
+                                                @csrf @method('PATCH')
+                                                <button class="inline-flex items-center gap-1 text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 hover:underline">
+                                                    <x-icon :name="$user->is_active ? 'x-circle' : 'check-circle'" class="w-4 h-4" />
+                                                    {{ $user->is_active ? 'Deactivate' : 'Reactivate' }}
+                                                </button>
+                                            </form>
+                                        @endunless
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Privacy Policy – undek</title>
+<link rel="icon" type="image/svg+xml" href="{{ asset('images/logo-mark.svg') }}?v=2">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box}
@@ -18,9 +19,8 @@ h1,h2{font-family:'Space Grotesk',sans-serif}
 <body>
 
 <nav style="position:sticky;top:0;z-index:60;display:flex;align-items:center;justify-content:space-between;padding:16px 40px;backdrop-filter:blur(16px);background:rgba(8,8,12,0.6);border-bottom:1px solid rgba(255,255,255,0.07)">
-  <a href="{{ route('home') }}" style="display:flex;align-items:center;gap:11px">
-    <span style="width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#7c5cff,#22d3ee);box-shadow:0 0 20px rgba(124,92,255,.65);display:block;transform:rotate(12deg)"></span>
-    <span style="font-family:'Space Grotesk';font-weight:700;font-size:21px;color:#f5f5fa;letter-spacing:-.02em">undek</span>
+  <a href="{{ route('home') }}" style="display:flex;align-items:center">
+    <x-logo-lockup glow style="font-size:21px;color:#f5f5fa;letter-spacing:-.02em" />
   </a>
   <div style="display:flex;gap:24px;align-items:center;font-size:15px;font-weight:500">
     <a href="{{ route('home') }}" style="color:#c7c7d6">&larr; Back to home</a>

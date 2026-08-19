@@ -26,6 +26,9 @@
     <x-sidebar-link :href="route('employees.index')" :active="request()->routeIs('employees.*')">
         <x-icon name="users" class="w-5 h-5 shrink-0" />{{ __('Employees') }}
     </x-sidebar-link>
+    <x-sidebar-link :href="route('positions.index')" :active="request()->routeIs('positions.*')">
+        <x-icon name="briefcase" class="w-5 h-5 shrink-0" />{{ __('Positions') }}
+    </x-sidebar-link>
     <x-sidebar-link :href="route('reference-data.index')" :active="request()->routeIs('reference-data.*')">
         <x-icon name="building-office" class="w-5 h-5 shrink-0" />{{ __('Reference Data') }}
     </x-sidebar-link>

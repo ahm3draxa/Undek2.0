@@ -11,7 +11,7 @@ class Message extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'body'];
+    protected $fillable = ['user_id', 'body', 'type', 'channel'];
 
     public function user(): BelongsTo
     {

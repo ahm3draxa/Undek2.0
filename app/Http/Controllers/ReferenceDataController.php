@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Department;
-use App\Models\Position;
 use App\Models\SkillCategory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,17 +13,15 @@ class ReferenceDataController extends Controller
 {
     private const TYPES = [
         'department' => Department::class,
-        'position' => Position::class,
         'skill-category' => SkillCategory::class,
     ];
 
     public function index(): View
     {
         $departments = Department::withCount('employeeProfiles')->orderBy('name')->get();
-        $positions = Position::withCount('employeeProfiles')->orderBy('name')->get();
         $skillCategories = SkillCategory::withCount('skills')->orderBy('name')->get();
 
-        return view('reference-data.index', compact('departments', 'positions', 'skillCategories'));
+        return view('reference-data.index', compact('departments', 'skillCategories'));
     }
 
     public function store(Request $request, string $type): RedirectResponse
@@ -46,7 +43,7 @@ class ReferenceDataController extends Controller
         $record = $model::findOrFail($id);
 
         $inUse = match ($model) {
-            Department::class, Position::class => $record->employeeProfiles()->exists(),
+            Department::class => $record->employeeProfiles()->exists(),
             SkillCategory::class => $record->skills()->exists(),
             default => false,
         };

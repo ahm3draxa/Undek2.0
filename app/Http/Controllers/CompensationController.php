@@ -22,7 +22,16 @@ class CompensationController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('finance.compensation.index', compact('employees'));
+        $stats = [
+            'total' => $employees->count(),
+            'hourly' => $employees->filter(fn ($e) => $e->employeeProfile->compensation_type === 'hourly')->count(),
+            'salaried' => $employees->filter(fn ($e) => $e->employeeProfile->compensation_type === 'fixed_salary')->count(),
+            'adjustments_this_month' => CompensationIncrement::whereMonth('effective_date', now()->month)
+                ->whereYear('effective_date', now()->year)
+                ->count(),
+        ];
+
+        return view('finance.compensation.index', compact('employees', 'stats'));
     }
 
     /**

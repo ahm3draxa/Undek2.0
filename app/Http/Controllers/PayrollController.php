@@ -14,7 +14,14 @@ class PayrollController extends Controller
     {
         $adjustments = PayrollAdjustment::with(['user', 'createdBy'])->latest('effective_date')->paginate(20);
 
-        return view('payroll.index', compact('adjustments'));
+        $stats = [
+            'total' => PayrollAdjustment::count(),
+            'this_month' => PayrollAdjustment::whereMonth('effective_date', now()->month)->whereYear('effective_date', now()->year)->sum('amount'),
+            'bonuses' => PayrollAdjustment::where('type', 'bonus')->count(),
+            'deductions' => PayrollAdjustment::where('type', 'deduction')->count(),
+        ];
+
+        return view('payroll.index', compact('adjustments', 'stats'));
     }
 
     public function store(Request $request, User $employee): RedirectResponse

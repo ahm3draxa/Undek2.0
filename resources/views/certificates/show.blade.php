@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ \App\Models\Certificate::TYPES[$certificate->type] ?? 'Certificate' }} — {{ $certificate->code }}</title>
+<link rel="icon" type="image/svg+xml" href="{{ asset('images/logo-mark.svg') }}?v=2">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; }
@@ -14,9 +15,7 @@
   .sheet-wrap { max-width: 800px; margin: 40px auto; padding: 0 20px; }
   .sheet { background: #ffffff; border-radius: 4px; box-shadow: 0 1px 3px rgba(20,14,50,.08), 0 20px 50px rgba(20,14,50,.12); padding: 64px 72px; position: relative; overflow: hidden; }
   .sheet::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 8px; background: linear-gradient(90deg,#7c5cff,#22d3ee,#34e0a1); }
-  .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 46px; }
-  .brand .mark { width: 26px; height: 26px; border-radius: 7px; background: linear-gradient(135deg,#7c5cff,#22d3ee); transform: rotate(10deg); }
-  .brand .name { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; letter-spacing: -.02em; }
+  .brand { display: flex; align-items: center; margin-bottom: 46px; }
   .doc-kicker { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: #7c5cff; margin-bottom: 10px; }
   h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 30px; letter-spacing: -.02em; margin: 0 0 34px; }
   .body-copy { font-size: 16px; line-height: 1.85; color: #2c2740; max-width: 60ch; }
@@ -46,7 +45,7 @@
 
 <div class="sheet-wrap">
   <div class="sheet">
-    <div class="brand"><span class="mark"></span><span class="name">undek</span></div>
+    <div class="brand"><x-logo-lockup style="font-size: 20px; letter-spacing: -.02em; color: #17142a;" /></div>
 
     @php $s = $certificate->snapshot ?? []; @endphp
 

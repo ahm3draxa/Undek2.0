@@ -5,7 +5,10 @@
 @endphp
 
 <div style="display:flex;flex-direction:column;align-items:center;gap:18px">
-    <div data-reveal="0" style="opacity:0;transform:translateY(20px);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1);width:240px;padding:22px;border-radius:18px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);text-align:center;position:relative;overflow:hidden">
+    {{-- Deliberately not using data-reveal here — real content (who's actually
+         on the team) shouldn't be gated behind a JS fade-in that can leave it
+         invisible if anything else on the page misbehaves. --}}
+    <div style="width:240px;padding:22px;border-radius:18px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);text-align:center;position:relative;overflow:hidden">
         <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#7c5cff,#22d3ee)"></div>
         @if ($user->avatarUrl())
             <img src="{{ $user->avatarUrl() }}" alt="{{ $user->name }}" style="width:56px;height:56px;border-radius:50%;margin:0 auto 14px;display:block;object-fit:cover">

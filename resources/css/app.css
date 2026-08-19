@@ -5,3 +5,57 @@
 [x-cloak] {
     display: none !important;
 }
+
+/*
+ * Tells the browser which palette to render its OWN native UI in — scrollbars,
+ * date/time pickers, number input spin buttons, select dropdowns, checkboxes —
+ * anything Tailwind utility classes can't reach because it's drawn by the OS/
+ * browser, not the page. Without this, those controls stay light even though
+ * everything around them switched to dark mode.
+ */
+:root {
+    color-scheme: light;
+}
+
+.dark {
+    color-scheme: dark;
+}
+
+/* Firefox scrollbar theming (color-scheme alone doesn't cover this in Firefox). */
+html {
+    scrollbar-color: rgb(203 213 225) transparent; /* slate-300 thumb */
+}
+
+.dark html,
+html.dark {
+    scrollbar-color: rgb(71 85 105) transparent; /* slate-600 thumb */
+}
+
+/* Chromium/Safari scrollbar theming, matched to the brand's violet/cyan accent on hover. */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: rgb(203 213 225); /* slate-300 */
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #7c5cff;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+    background-color: rgb(71 85 105); /* slate-600 */
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+    background-color: #22d3ee;
+}

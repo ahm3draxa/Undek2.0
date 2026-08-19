@@ -4,14 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Certificate verification — {{ $code }}</title>
+<link rel="icon" type="image/svg+xml" href="{{ asset('images/logo-mark.svg') }}?v=2">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #0e0c16; color: #ede9f7; font-family: 'Manrope', system-ui, sans-serif; padding: 24px; }
   .card { max-width: 460px; width: 100%; background: #171425; border: 1px solid rgba(255,255,255,.09); border-radius: 16px; padding: 40px; text-align: center; }
-  .brand { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 30px; }
-  .brand .mark { width: 24px; height: 24px; border-radius: 7px; background: linear-gradient(135deg,#7c5cff,#22d3ee); transform: rotate(10deg); }
-  .brand .name { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px; }
+  .brand { display: flex; align-items: center; justify-content: center; margin-bottom: 30px; }
   .badge { width: 56px; height: 56px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 26px; }
   .badge.ok { background: rgba(63,219,160,.14); color: #3fdba0; border: 1px solid rgba(63,219,160,.3); }
   .badge.no { background: rgba(255,127,163,.14); color: #ff7fa3; border: 1px solid rgba(255,127,163,.3); }
@@ -25,7 +24,7 @@
 </head>
 <body>
   <div class="card">
-    <div class="brand"><span class="mark"></span><span class="name">undek</span></div>
+    <div class="brand"><x-logo-lockup glow style="font-size: 18px; color: #ede9f7;" /></div>
 
     @if ($certificate)
       <div class="badge ok">&#10003;</div>

@@ -1,21 +1,21 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <h2 class="flex items-center gap-2 font-space font-semibold text-xl text-gray-800 dark:text-gray-100 leading-tight">
-                <x-icon name="cog" class="w-5 h-5" style="color:#7c5cff" />
-                {{ __('Services') }}
-            </h2>
-            <a href="{{ route('services.create') }}"><x-primary-button><x-icon name="plus" class="w-3.5 h-3.5" />Add service</x-primary-button></a>
-        </div>
+        <x-page-header icon="cog" title="Services" subtitle="Your catalog — what clients can request a quote for.">
+            <x-slot name="actions">
+                <a href="{{ route('services.create') }}"><x-primary-button><x-icon name="plus" class="w-3.5 h-3.5" />Add service</x-primary-button></a>
+            </x-slot>
+        </x-page-header>
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-6xl mx-auto sm:px-6 lg:px-8 space-y-4">
-            @if (session('status'))
-                <div class="rounded-lg border border-emerald-300 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-4 py-3 text-sm">
-                    {{ session('status') }}
-                </div>
-            @endif
+        <div class="max-w-6xl mx-auto sm:px-6 lg:px-8 space-y-6">
+            <x-status-banner />
+
+            <div class="grid grid-cols-3 gap-4">
+                <x-stat-card icon="cog" label="Total services" :value="$services->count()" accent="violet" />
+                <x-stat-card icon="check-circle" label="Active" :value="$services->where('is_active', true)->count()" accent="green" />
+                <x-stat-card icon="document-text" label="Total requests" :value="$services->sum('quote_requests_count')" accent="amber" />
+            </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 @forelse ($services as $service)

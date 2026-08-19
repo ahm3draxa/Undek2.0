@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <title>{{ config('app.name', 'undek') }} – Where the IT Flocks</title>
+<link rel="icon" type="image/svg+xml" href="{{ asset('images/logo-mark.svg') }}?v=2">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 
@@ -279,9 +280,8 @@ body::after {
 <div style="position:relative">
 
 <nav style="position:sticky;top:0;z-index:60;display:flex;align-items:center;justify-content:space-between;padding:16px 40px;backdrop-filter:blur(16px);background:rgba(8,8,12,0.6);border-bottom:1px solid rgba(255,255,255,0.07)">
-  <a href="#top" style="display:flex;align-items:center;gap:11px">
-    <span style="width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#7c5cff,#22d3ee);box-shadow:0 0 20px rgba(124,92,255,.65);display:block;transform:rotate(12deg)"></span>
-    <span class="logo-glyph" data-text="undek" style="font-family:'Space Grotesk';font-weight:700;font-size:21px;color:#f5f5fa;letter-spacing:-.02em">undek</span>
+  <a href="#top" style="display:flex;align-items:center">
+    <x-logo-lockup glow style="font-size:21px;color:#f5f5fa;letter-spacing:-.02em" />
   </a>
   <div style="display:flex;gap:32px;align-items:center;font-size:15px;font-weight:500">
     <a href="#services" style="color:#c7c7d6">Services</a>
@@ -445,64 +445,63 @@ body::after {
   </div>
 </section>
 
-<section id="work" class="robo-section" style="padding:120px 40px">
+{{-- No .robo-section / data-reveal here either — real delivered-project data,
+     not decorative copy, so it's always visible regardless of any JS. --}}
+<section id="work" style="padding:120px 40px">
   <div style="max-width:1240px;margin:0 auto">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:24px;margin-bottom:56px">
-      <div data-reveal="0" style="transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1)">
+      <div>
         <div style="font-family:'JetBrains Mono';font-size:12px;letter-spacing:.18em;color:#ff5da2;margin-bottom:16px">// SELECTED WORK</div>
         <h2 style="font-family:'Space Grotesk';font-weight:700;font-size:clamp(34px,5vw,60px);line-height:1;letter-spacing:-.03em;margin:0;max-width:14ch">Work our clients rate highly.</h2>
       </div>
-      <div data-reveal="120" style="transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1);text-align:right">
-        <div style="font-family:'Space Grotesk';font-weight:700;font-size:44px;line-height:1;color:#f5f5fa">4.9<span style="color:#ffb020;font-size:24px">★</span></div>
-        <div style="font-size:14px;color:#9b9bb0;margin-top:6px">avg. rating · 120+ projects</div>
-      </div>
+      @if ($avgRating)
+        <div style="text-align:right">
+          <div style="font-family:'Space Grotesk';font-weight:700;font-size:44px;line-height:1;color:#f5f5fa">{{ number_format($avgRating, 1) }}<span style="color:#ffb020;font-size:24px">★</span></div>
+          <div style="font-size:14px;color:#9b9bb0;margin-top:6px">avg. rating · {{ $ratedProjectsCount }} delivered project{{ $ratedProjectsCount === 1 ? '' : 's' }}</div>
+        </div>
+      @endif
     </div>
 
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:22px">
-      <div data-reveal="0" style="transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1)">
-        <div style="aspect-ratio:4/3;border-radius:18px;background:repeating-linear-gradient(45deg,#15151d,#15151d 11px,#101018 11px,#101018 22px);display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.08);margin-bottom:16px">
-          <span style="font-family:'JetBrains Mono';font-size:12px;color:#5c5c72;letter-spacing:.08em">[ ecommerce-shot.jpg ]</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
-          <div>
-            <div style="font-family:'Space Grotesk';font-weight:600;font-size:18px">Lumen Store</div>
-            <div style="font-size:13px;color:#9b9bb0;margin-top:3px">E-commerce · Web Development</div>
+    @if ($deliveredProjects->isNotEmpty())
+      @php $workAccents = ['#22d3ee', '#34e0a1', '#5b8cff', '#ff5da2', '#ffb020', '#7c5cff']; @endphp
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:22px">
+        @foreach ($deliveredProjects as $i => $project)
+          @php
+            $feedback = $project->feedbacks->first();
+            $service = $project->quoteRequest->service ?? null;
+            $accent = $workAccents[$i % count($workAccents)];
+          @endphp
+          <div style="position:relative;display:flex;flex-direction:column;gap:16px;padding:28px;border-radius:22px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);overflow:hidden">
+            <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,{{ $accent }},transparent)"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="width:44px;height:44px;border-radius:12px;background:{{ $accent }}24;border:1px solid {{ $accent }}4d;display:flex;align-items:center;justify-content:center;color:{{ $accent }}">
+                <x-icon :name="$service->icon ?? 'sparkles'" class="w-5 h-5" />
+              </div>
+              <span style="color:#ffb020;font-size:13px;white-space:nowrap">{{ str_repeat('★', $feedback->rating) }}<span style="color:#3a3a48">{{ str_repeat('★', 5 - $feedback->rating) }}</span></span>
+            </div>
+            <p style="font-family:'JetBrains Mono';font-size:13px;color:#9b9bb0;line-height:1.65;margin:0;flex:1">&ldquo;{{ \Illuminate\Support\Str::limit($feedback->comment, 120) }}&rdquo;</p>
+            <div style="padding-top:14px;border-top:1px solid rgba(255,255,255,.07)">
+              <div style="font-family:'Space Grotesk';font-weight:600;font-size:17px;color:#f5f5fa">{{ $project->title }}</div>
+              <div style="font-size:12.5px;color:#7a7a92;margin-top:3px">{{ $service->name ?? 'Project delivery' }}</div>
+            </div>
           </div>
-          <span style="color:#ffb020;font-size:14px;white-space:nowrap">★★★★★</span>
-        </div>
+        @endforeach
       </div>
-      <div data-reveal="100" style="transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1)">
-        <div style="aspect-ratio:4/3;border-radius:18px;background:repeating-linear-gradient(45deg,#15151d,#15151d 11px,#101018 11px,#101018 22px);display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.08);margin-bottom:16px">
-          <span style="font-family:'JetBrains Mono';font-size:12px;color:#5c5c72;letter-spacing:.08em">[ brand-reel.mp4 ]</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
-          <div>
-            <div style="font-family:'Space Grotesk';font-weight:600;font-size:18px">Northwind Rebrand</div>
-            <div style="font-size:13px;color:#9b9bb0;margin-top:3px">Identity · Graphic + Video</div>
-          </div>
-          <span style="color:#ffb020;font-size:14px;white-space:nowrap">★★★★★</span>
-        </div>
+    @else
+      <div style="padding:60px 40px;border-radius:18px;border:1px dashed rgba(255,255,255,.14);text-align:center">
+        <p style="font-family:'JetBrains Mono';font-size:13px;color:#6e6e82;letter-spacing:.04em">// No delivered projects rated yet — check back soon.</p>
       </div>
-      <div data-reveal="200" style="transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1)">
-        <div style="aspect-ratio:4/3;border-radius:18px;background:repeating-linear-gradient(45deg,#15151d,#15151d 11px,#101018 11px,#101018 22px);display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.08);margin-bottom:16px">
-          <span style="font-family:'JetBrains Mono';font-size:12px;color:#5c5c72;letter-spacing:.08em">[ saas-dashboard.jpg ]</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
-          <div>
-            <div style="font-family:'Space Grotesk';font-weight:600;font-size:18px">Vertex Analytics</div>
-            <div style="font-size:13px;color:#9b9bb0;margin-top:3px">SaaS · Web + SEO</div>
-          </div>
-          <span style="color:#ffb020;font-size:14px;white-space:nowrap">★★★★<span style="color:#3a3a48">★</span></span>
-        </div>
-      </div>
-    </div>
+    @endif
   </div>
 </section>
 
 @if ($team->isNotEmpty())
-<section id="team" class="robo-section" style="padding:120px 40px">
+{{-- No .robo-section / data-reveal here on purpose — this is real content
+     (who's actually on the team), not decorative copy, so it shouldn't
+     depend on a JS animation system to become visible at all. --}}
+<section id="team" style="padding:120px 40px">
   <div style="max-width:1240px;margin:0 auto">
-    <div data-reveal="0" style="transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1);text-align:center;margin-bottom:64px">
+    <div style="text-align:center;margin-bottom:64px">
       <div style="font-family:'JetBrains Mono';font-size:12px;letter-spacing:.18em;color:#34e0a1;margin-bottom:16px">// THE TEAM</div>
       <h2 style="font-family:'Space Grotesk';font-weight:700;font-size:clamp(34px,5vw,60px);line-height:1;letter-spacing:-.03em;margin:0 auto;max-width:18ch">The people behind the work.</h2>
     </div>
@@ -534,9 +533,8 @@ body::after {
 <footer style="padding:70px 40px 44px;border-top:1px solid rgba(255,255,255,.07)">
   <div style="max-width:1240px;margin:0 auto;display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:40px">
     <div>
-      <div style="display:flex;align-items:center;gap:11px;margin-bottom:18px">
-        <span style="width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,#7c5cff,#22d3ee);display:block;transform:rotate(12deg)"></span>
-        <span style="font-family:'Space Grotesk';font-weight:700;font-size:19px;letter-spacing:-.02em">undek</span>
+      <div style="display:flex;align-items:center;margin-bottom:18px">
+        <x-logo-lockup style="font-size:19px;letter-spacing:-.02em" />
       </div>
       <p style="font-size:15px;line-height:1.6;color:#9b9bb0;margin:0;max-width:34ch">A full-stack digital studio. We design, build, rank, and grow — under one roof, with milestones you can see.</p>
     </div>
@@ -592,7 +590,18 @@ body::after {
 </div>
 
 <script>
+// ─── REVEAL SAFETY NET (registered first, before anything that could throw) ───
+// Content below is invisible-by-default until "revealed" by JS further down.
+// This guarantees it becomes visible no matter what — even if a completely
+// unrelated widget below throws and stops the rest of the script from
+// running, this has already been scheduled and fires independently.
+setTimeout(() => {
+  document.querySelectorAll('.robo-section:not(.unmasked)').forEach(sec => sec.classList.add('unmasked'));
+  document.querySelectorAll('[data-reveal]:not(.revealed)').forEach(el => el.classList.add('revealed'));
+}, 1200);
+
 // ─── AI CHAT WIDGET ───
+try {
 (function() {
   const launcher = document.getElementById('chatbot-launcher');
   const panel = document.getElementById('chatbot-panel');
@@ -665,17 +674,22 @@ body::after {
     }
   });
 })();
+} catch (e) { console.error('chat widget failed to init', e); }
 
 // ─── HUD CLOCK ───
+try {
 function tick() {
-  const n = new Date();
+  const n = document.getElementById('hud-clk');
+  if (!n) return;
+  const now = new Date();
   const pad = x => String(x).padStart(2,'0');
-  document.getElementById('hud-clk').textContent =
-    pad(n.getHours())+':'+pad(n.getMinutes())+':'+pad(n.getSeconds());
+  n.textContent = pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
 }
 setInterval(tick, 1000); tick();
+} catch (e) { console.error('hud clock failed to init', e); }
 
 // ─── BOOT WIPE ───
+try {
 (function() {
   const bars = [...document.querySelectorAll('#page-wipe .bar')];
   bars.forEach((b, i) => setTimeout(() => {
@@ -689,8 +703,10 @@ setInterval(tick, 1000); tick();
     b.style.transform  = 'scaleX(0)';
   }, out + i * 30));
 })();
+} catch (e) { console.error('boot wipe failed to init', e); }
 
 // ─── TERMINAL TYPE ANIMATION ───
+try {
 (function() {
   const el = document.getElementById('term-body');
   if (!el) return;
@@ -744,8 +760,10 @@ setInterval(tick, 1000); tick();
 
   run(0);
 })();
+} catch (e) { console.error('terminal animation failed to init', e); }
 
 // ─── PARTICLE CANVAS ───
+try {
 (function() {
   const canvas = document.getElementById('hero-canvas');
   if (!canvas) return;
@@ -794,9 +812,13 @@ setInterval(tick, 1000); tick();
   window.addEventListener('resize', () => { resize(); init(); });
   resize(); init(); frame();
 })();
+} catch (e) { console.error('particle canvas failed to init', e); }
 
 // ─── ROBOTIC SECTION REVEALS ───
-// Sections: mechanical sweep-unmask + staggered data-reveal children
+// Sections: mechanical sweep-unmask + staggered data-reveal children.
+// (The safety net covering these same elements is already registered at the
+// very top of this script, before any of the above — see there.)
+try {
 const sections = document.querySelectorAll('.robo-section');
 const revealObs = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
@@ -826,29 +848,26 @@ const revealObs = new IntersectionObserver((entries) => {
 }, { threshold: 0.08 });
 
 sections.forEach(s => revealObs.observe(s));
-
-// ─── REVEAL SAFETY NET ───
-// Guarantees content is never left permanently invisible if the observer
-// never fires for a section (e.g. it's already fully in view on load).
-setTimeout(() => {
-  document.querySelectorAll('.robo-section:not(.unmasked)').forEach(sec => sec.classList.add('unmasked'));
-  document.querySelectorAll('[data-reveal]:not(.revealed)').forEach(el => el.classList.add('revealed'));
-}, 1200);
+} catch (e) { console.error('section reveal observer failed to init', e); }
 
 // ─── NAV HOVER ───
+try {
 document.querySelectorAll('nav a').forEach(a => {
   a.addEventListener('mouseenter', () => a.style.color = '#22d3ee');
   a.addEventListener('mouseleave', () => a.style.color = '');
 });
+} catch (e) { console.error('nav hover failed to init', e); }
 
 // ─── STYLE-HOVER ATTRIBUTES ───
 // The original design uses style-hover="..." — implement via JS
+try {
 document.querySelectorAll('[style-hover]').forEach(el => {
   const base = el.getAttribute('style') || '';
   const hover = el.getAttribute('style-hover') || '';
   el.addEventListener('mouseenter', () => el.setAttribute('style', base + ';' + hover));
   el.addEventListener('mouseleave', () => el.setAttribute('style', base));
 });
+} catch (e) { console.error('style-hover failed to init', e); }
 </script>
 </body>
 </html>

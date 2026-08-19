@@ -1,23 +1,24 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <h2 class="flex items-center gap-2 font-space font-semibold text-xl text-gray-800 dark:text-gray-100 leading-tight">
-                <x-icon name="users" class="w-5 h-5" style="color:#7c5cff" />
-                {{ __('Employees') }}
-            </h2>
-            <a href="{{ route('employees.create') }}"><x-primary-button><x-icon name="plus" class="w-3.5 h-3.5" />Add employee</x-primary-button></a>
-        </div>
+        <x-page-header icon="users" title="Employees" subtitle="Everyone onboarded, their department, position, and reporting line.">
+            <x-slot name="actions">
+                <a href="{{ route('employees.create') }}"><x-primary-button><x-icon name="plus" class="w-3.5 h-3.5" />Add employee</x-primary-button></a>
+            </x-slot>
+        </x-page-header>
     </x-slot>
 
     <div class="py-12">
-        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-4">
-            @if (session('status'))
-                <div class="rounded-lg border border-emerald-300 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-4 py-3 text-sm">
-                    {{ session('status') }}
-                </div>
-            @endif
+        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-6">
+            <x-status-banner />
 
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-x-auto transition-colors duration-200">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <x-stat-card icon="users" label="Total employees" :value="$stats['total']" accent="violet" />
+                <x-stat-card icon="sparkles" label="Interns" :value="$stats['interns']" accent="green" />
+                <x-stat-card icon="building-office" label="Departments" :value="$stats['departments']" accent="pink" />
+                <x-stat-card icon="clock" label="Unassigned position" :value="$stats['unassigned']" accent="amber" />
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl overflow-x-auto transition-colors duration-200">
                 <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
                     <thead class="bg-gray-50 dark:bg-gray-900/40">
                         <tr class="text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -31,8 +32,17 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                         @forelse ($employees as $employee)
-                            <tr class="text-gray-700 dark:text-gray-200">
-                                <td class="px-6 py-4 font-medium">{{ $employee->name }}</td>
+                            <tr class="text-gray-700 dark:text-gray-200 hover:bg-gray-50/70 dark:hover:bg-gray-700/30 transition-colors">
+                                <td class="px-6 py-4 font-medium">
+                                    <div class="flex items-center gap-2.5">
+                                        @if ($employee->avatarUrl())
+                                            <img src="{{ $employee->avatarUrl() }}" alt="{{ $employee->name }}" class="w-7 h-7 rounded-full object-cover">
+                                        @else
+                                            <div class="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold text-white shrink-0" style="background:linear-gradient(135deg,#7c5cff,#22d3ee)">{{ $employee->initials() }}</div>
+                                        @endif
+                                        {{ $employee->name }}
+                                    </div>
+                                </td>
                                 <td class="px-6 py-4">{{ $employee->employeeProfile->position->name ?? '—' }}</td>
                                 <td class="px-6 py-4">{{ $employee->employeeProfile->department->name ?? '—' }}</td>
                                 <td class="px-6 py-4">{{ $employee->employeeProfile->manager->name ?? '—' }}</td>

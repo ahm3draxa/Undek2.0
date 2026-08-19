@@ -3,12 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\User;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use PragmaRX\Google2FA\Google2FA;
 
 class ProfileController extends Controller
 {
@@ -17,9 +23,29 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): View
     {
+        $user = $request->user();
+        $qrCodeSvg = null;
+
+        if ($user->two_factor_secret && ! $user->hasEnabledTwoFactorAuthentication()) {
+            $qrCodeSvg = $this->qrCodeSvg($user);
+        }
+
         return view('profile.edit', [
-            'user' => $request->user(),
+            'user' => $user,
+            'qrCodeSvg' => $qrCodeSvg,
+            'recoveryCodes' => session('recoveryCodes'),
         ]);
+    }
+
+    private function qrCodeSvg(User $user): string
+    {
+        $google2fa = new Google2FA;
+        $qrCodeUrl = $google2fa->getQRCodeUrl(config('app.name'), $user->email, $user->two_factor_secret);
+
+        $renderer = new ImageRenderer(new RendererStyle(200), new SvgImageBackEnd);
+        $writer = new Writer($renderer);
+
+        return $writer->writeString($qrCodeUrl);
     }
 
     /**
