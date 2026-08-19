@@ -773,20 +773,22 @@ try {
 
   function typeLine(line, cb) {
     const row = document.createElement('div');
+    const textSpan = document.createElement('span');
+    row.style.cssText = line.cls;
+    row.appendChild(textSpan);
     el.appendChild(row);
+    // The cursor is appended once per line, not per character — re-inserting
+    // an animated element into the DOM restarts its CSS animation, so doing
+    // this on every keystroke made the blink stutter instead of pulsing evenly.
     row.appendChild(cursor);
     if (!line.type) {
-      row.style.cssText = line.cls;
-      row.textContent = line.text;
-      el.appendChild(cursor);
+      textSpan.textContent = line.text;
       setTimeout(cb, 260);
       return;
     }
     let i = 0;
-    row.style.cssText = line.cls;
     function step() {
-      row.textContent = line.text.slice(0, i);
-      row.appendChild(cursor);
+      textSpan.textContent = line.text.slice(0, i);
       i++;
       if (i <= line.text.length) {
         setTimeout(step, 28 + Math.random() * 30);
