@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Concerns\ClaimsGuestQuoteRequests;
+use App\Http\Controllers\Concerns\EnforcesSingleSession;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -14,7 +15,7 @@ use PragmaRX\Google2FA\Google2FA;
 
 class TwoFactorChallengeController extends Controller
 {
-    use ClaimsGuestQuoteRequests;
+    use ClaimsGuestQuoteRequests, EnforcesSingleSession;
 
     /**
      * Show the challenge form — only reachable mid-login, once credentials are
@@ -68,6 +69,7 @@ class TwoFactorChallengeController extends Controller
         Auth::login($user, $remember);
         $request->session()->regenerate();
 
+        $this->invalidateOtherSessions($request, $user, $remember);
         $this->claimGuestQuoteRequests($user);
 
         return redirect()->intended(route('dashboard', absolute: false));
