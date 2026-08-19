@@ -252,6 +252,49 @@ body::after {
 @media (max-width: 1100px) {
   .terminal-window { display: none; }
 }
+
+/* ═══════════════════════════════════════════
+   MOBILE / SMALL-SCREEN LAYOUT
+   ═══════════════════════════════════════════ */
+.nav-toggle-btn { display: none; }
+.nav-cta-in-menu { display: none; }
+
+@media (max-width: 860px) {
+  .site-nav { padding: 14px 20px !important; }
+  .nav-links {
+    display: none !important;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 2px !important;
+    background: #0b0b12;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    box-shadow: 0 20px 40px rgba(0,0,0,.4);
+    padding: 10px 20px 20px;
+    max-height: calc(100vh - 64px);
+    overflow-y: auto;
+  }
+  .nav-links.open { display: flex !important; }
+  .nav-links a { padding: 13px 4px; border-bottom: 1px solid rgba(255,255,255,.05); }
+  .nav-cta-desktop { display: none !important; }
+  .nav-cta-in-menu { display: block !important; margin-top: 12px; text-align: center; }
+  .nav-toggle-btn { display: flex !important; }
+}
+
+@media (max-width: 640px) {
+  .pad-x { padding-left: 20px !important; padding-right: 20px !important; }
+  .hero-header { min-height: auto !important; padding-top: 108px !important; padding-bottom: 64px !important; }
+  .section-pad { padding-top: 72px !important; padding-bottom: 72px !important; }
+  .footer-grid { grid-template-columns: 1fr !important; gap: 34px !important; }
+  .hero-cta-row a, .contact-cta-row a { text-align: center; justify-content: center; }
+}
+
+@media (max-width: 420px) {
+  h1 { font-size: clamp(40px, 13vw, 132px) !important; }
+}
 </style>
 </head>
 <body>
@@ -279,11 +322,11 @@ body::after {
 
 <div style="position:relative">
 
-<nav style="position:sticky;top:0;z-index:60;display:flex;align-items:center;justify-content:space-between;padding:16px 40px;backdrop-filter:blur(16px);background:rgba(8,8,12,0.6);border-bottom:1px solid rgba(255,255,255,0.07)">
+<nav class="site-nav" style="position:sticky;top:0;z-index:60;display:flex;align-items:center;justify-content:space-between;padding:16px 40px;backdrop-filter:blur(16px);background:rgba(8,8,12,0.6);border-bottom:1px solid rgba(255,255,255,0.07)">
   <a href="#top" style="display:flex;align-items:center">
     <x-logo-lockup glow style="font-size:21px;color:#f5f5fa;letter-spacing:-.02em" />
   </a>
-  <div style="display:flex;gap:32px;align-items:center;font-size:15px;font-weight:500">
+  <div class="nav-links" id="nav-links" style="display:flex;gap:32px;align-items:center;font-size:15px;font-weight:500">
     <a href="#services" style="color:#c7c7d6">Services</a>
     <a href="#work" style="color:#c7c7d6">Work</a>
     <a href="#process" style="color:#c7c7d6">Process</a>
@@ -296,11 +339,15 @@ body::after {
     @else
       <a href="{{ route('login') }}" style="color:#c7c7d6">Log in</a>
     @endauth
+    <a href="#contact" class="nav-cta-in-menu" style="padding:12px 22px;border-radius:999px;background:linear-gradient(120deg,#7c5cff,#22d3ee);color:#08080c;font-weight:700;font-family:'Space Grotesk';font-size:15px;border-bottom:none !important">Get a quote</a>
   </div>
-  <a href="#contact" style="padding:11px 22px;border-radius:999px;background:linear-gradient(120deg,#7c5cff,#22d3ee);color:#08080c;font-weight:700;font-family:'Space Grotesk';font-size:15px;box-shadow:0 6px 24px rgba(124,92,255,.35);transition:.3s" style-hover="transform:translateY(-2px);box-shadow:0 10px 32px rgba(124,92,255,.5)">Get a quote</a>
+  <a href="#contact" class="nav-cta-desktop" style="padding:11px 22px;border-radius:999px;background:linear-gradient(120deg,#7c5cff,#22d3ee);color:#08080c;font-weight:700;font-family:'Space Grotesk';font-size:15px;box-shadow:0 6px 24px rgba(124,92,255,.35);transition:.3s" style-hover="transform:translateY(-2px);box-shadow:0 10px 32px rgba(124,92,255,.5)">Get a quote</a>
+  <button id="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="nav-links" class="nav-toggle-btn" style="align-items:center;justify-content:center;width:42px;height:42px;flex-shrink:0;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.04);cursor:pointer">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#f5f5fa" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
 </nav>
 
-<header id="top" style="position:relative;overflow:hidden;padding:130px 40px 120px;min-height:90vh;display:flex;align-items:center">
+<header id="top" class="hero-header pad-x" style="position:relative;overflow:hidden;padding:130px 40px 120px;min-height:90vh;display:flex;align-items:center">
   <canvas id="hero-canvas" style="position:absolute;inset:0;width:100%;height:100%;z-index:0;opacity:.9"></canvas>
   <div style="position:absolute;inset:0;z-index:1;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:64px 64px;mask-image:radial-gradient(ellipse 70% 60% at 40% 40%,#000 20%,transparent 75%);-webkit-mask-image:radial-gradient(ellipse 70% 60% at 40% 40%,#000 20%,transparent 75%)"></div>
   <div style="position:absolute;inset:0;z-index:1;background:radial-gradient(ellipse 90% 80% at 50% 120%,rgba(8,8,12,0) 40%,#08080c 80%)"></div>
@@ -318,7 +365,7 @@ body::after {
     <p style="font-size:clamp(17px,2vw,21px);line-height:1.55;color:#b6b6c8;max-width:56ch;margin:0 0 40px;animation:riseIn .9s ease both;animation-delay:.5s">
       undek is a full-stack digital studio — web development, SEO, IT support, graphic design and video, engineered under one roof. One team, every service, measurable results.
     </p>
-    <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-bottom:44px;animation:riseIn .9s ease both;animation-delay:.6s">
+    <div class="hero-cta-row" style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-bottom:44px;animation:riseIn .9s ease both;animation-delay:.6s">
       <a href="#contact" style="padding:16px 30px;border-radius:999px;background:linear-gradient(120deg,#7c5cff,#22d3ee);color:#08080c;font-weight:700;font-family:'Space Grotesk';font-size:16px;box-shadow:0 10px 34px rgba(124,92,255,.4);transition:.3s" style-hover="transform:translateY(-3px);box-shadow:0 16px 44px rgba(124,92,255,.55)">Start your project →</a>
       <a href="#services" style="padding:16px 30px;border-radius:999px;border:1px solid rgba(255,255,255,.18);color:#f5f5fa;font-weight:600;font-size:16px;transition:.3s" style-hover="border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.05)">Explore services</a>
     </div>
@@ -353,7 +400,7 @@ body::after {
   </div>
 </div>
 
-<div style="position:relative;z-index:3;padding:44px 40px 40px;text-align:center">
+<div class="pad-x" style="position:relative;z-index:3;padding:44px 40px 40px;text-align:center">
   <div style="font-family:'JetBrains Mono';font-size:11px;letter-spacing:.18em;color:#5c5c72;margin-bottom:18px">// BUILT ON A REAL STACK, NOT A TEMPLATE</div>
   <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:820px;margin:0 auto">
     <span class="stack-pill">PHP</span>
@@ -368,7 +415,7 @@ body::after {
   </div>
 </div>
 
-<section id="services" class="robo-section" style="padding:120px 40px">
+<section id="services" class="robo-section pad-x section-pad" style="padding:120px 40px">
   <div style="max-width:1240px;margin:0 auto">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:24px;margin-bottom:56px">
       <div data-reveal="0" style="transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1)">
@@ -413,7 +460,7 @@ body::after {
   </div>
 </section>
 
-<section id="process" class="robo-section" style="padding:120px 40px;background:linear-gradient(180deg,transparent,rgba(124,92,255,.04),transparent)">
+<section id="process" class="robo-section pad-x section-pad" style="padding:120px 40px;background:linear-gradient(180deg,transparent,rgba(124,92,255,.04),transparent)">
   <div style="max-width:1240px;margin:0 auto">
     <div data-reveal="0" style="transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1);text-align:center;margin-bottom:64px">
       <div style="font-family:'JetBrains Mono';font-size:12px;letter-spacing:.18em;color:#22d3ee;margin-bottom:16px">// HOW WE WORK</div>
@@ -447,7 +494,7 @@ body::after {
 
 {{-- No .robo-section / data-reveal here either — real delivered-project data,
      not decorative copy, so it's always visible regardless of any JS. --}}
-<section id="work" style="padding:120px 40px">
+<section id="work" class="pad-x section-pad" style="padding:120px 40px">
   <div style="max-width:1240px;margin:0 auto">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:24px;margin-bottom:56px">
       <div>
@@ -499,7 +546,7 @@ body::after {
 {{-- No .robo-section / data-reveal here on purpose — this is real content
      (who's actually on the team), not decorative copy, so it shouldn't
      depend on a JS animation system to become visible at all. --}}
-<section id="team" style="padding:120px 40px">
+<section id="team" class="pad-x section-pad" style="padding:120px 40px">
   <div style="max-width:1240px;margin:0 auto">
     <div style="text-align:center;margin-bottom:64px">
       <div style="font-family:'JetBrains Mono';font-size:12px;letter-spacing:.18em;color:#34e0a1;margin-bottom:16px">// THE TEAM</div>
@@ -515,14 +562,14 @@ body::after {
 </section>
 @endif
 
-<section id="contact" class="robo-section" style="padding:130px 40px">
-  <div data-reveal="0" style="transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1);max-width:1000px;margin:0 auto;text-align:center;position:relative;padding:70px 40px;border-radius:32px;background:linear-gradient(135deg,rgba(124,92,255,.14),rgba(34,211,238,.08));border:1px solid rgba(255,255,255,.1);overflow:hidden">
+<section id="contact" class="robo-section pad-x section-pad" style="padding:130px 40px">
+  <div data-reveal="0" class="pad-x" style="transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1);max-width:1000px;margin:0 auto;text-align:center;position:relative;padding:70px 40px;border-radius:32px;background:linear-gradient(135deg,rgba(124,92,255,.14),rgba(34,211,238,.08));border:1px solid rgba(255,255,255,.1);overflow:hidden">
     <div style="position:absolute;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(124,92,255,.4),transparent 70%);top:-140px;left:-80px;filter:blur(20px)"></div>
     <div style="position:absolute;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(34,211,238,.35),transparent 70%);bottom:-160px;right:-80px;filter:blur(20px)"></div>
     <div style="position:relative;z-index:2">
       <h2 style="font-family:'Space Grotesk';font-weight:700;font-size:clamp(32px,5vw,58px);line-height:1.02;letter-spacing:-.03em;margin:0 0 20px;max-width:18ch;margin-left:auto;margin-right:auto">Let's build something worth talking about.</h2>
       <p style="font-size:18px;color:#c2c2d2;max-width:48ch;margin:0 auto 36px;line-height:1.6">Tell us what you need. You'll get a tailored proposal from a specialist — not a sales bot.</p>
-      <div style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center">
+      <div class="contact-cta-row" style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center">
         <a href="{{ route('quote-requests.create') }}" style="padding:16px 32px;border-radius:999px;background:linear-gradient(120deg,#7c5cff,#22d3ee);color:#08080c;font-weight:700;font-family:'Space Grotesk';font-size:16px;box-shadow:0 10px 34px rgba(124,92,255,.4);transition:.3s" style-hover="transform:translateY(-3px);box-shadow:0 16px 44px rgba(124,92,255,.55)">Request a quote →</a>
         <a href="mailto:hello@undek.com" style="padding:16px 32px;border-radius:999px;border:1px solid rgba(255,255,255,.2);color:#f5f5fa;font-weight:600;font-size:16px;transition:.3s" style-hover="border-color:rgba(255,255,255,.45);background:rgba(255,255,255,.05)">hello@undek.com</a>
       </div>
@@ -530,8 +577,8 @@ body::after {
   </div>
 </section>
 
-<footer style="padding:70px 40px 44px;border-top:1px solid rgba(255,255,255,.07)">
-  <div style="max-width:1240px;margin:0 auto;display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:40px">
+<footer class="pad-x" style="padding:70px 40px 44px;border-top:1px solid rgba(255,255,255,.07)">
+  <div class="footer-grid" style="max-width:1240px;margin:0 auto;display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:40px">
     <div>
       <div style="display:flex;align-items:center;margin-bottom:18px">
         <x-logo-lockup style="font-size:19px;letter-spacing:-.02em" />
@@ -849,6 +896,23 @@ const revealObs = new IntersectionObserver((entries) => {
 
 sections.forEach(s => revealObs.observe(s));
 } catch (e) { console.error('section reveal observer failed to init', e); }
+
+// ─── MOBILE NAV TOGGLE ───
+try {
+(function() {
+  const toggle = document.getElementById('nav-toggle');
+  const links = document.getElementById('nav-links');
+  if (!toggle || !links) return;
+  toggle.addEventListener('click', () => {
+    const open = links.classList.toggle('open');
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+    links.classList.remove('open');
+    toggle.setAttribute('aria-expanded', 'false');
+  }));
+})();
+} catch (e) { console.error('mobile nav toggle failed to init', e); }
 
 // ─── NAV HOVER ───
 try {

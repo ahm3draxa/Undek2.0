@@ -11,7 +11,7 @@
         <div class="max-w-6xl mx-auto sm:px-6 lg:px-8 space-y-6">
             <x-status-banner />
 
-            <div class="grid grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <x-stat-card icon="cog" label="Total services" :value="$services->count()" accent="violet" />
                 <x-stat-card icon="check-circle" label="Active" :value="$services->where('is_active', true)->count()" accent="green" />
                 <x-stat-card icon="document-text" label="Total requests" :value="$services->sum('quote_requests_count')" accent="amber" />

@@ -7,7 +7,7 @@
         <div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-6">
             <x-status-banner />
 
-            <div class="grid grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <x-stat-card icon="shield-check" label="Roles" :value="$roles->count()" accent="violet" />
                 <x-stat-card icon="check-circle" label="Permissions" :value="$permissions->count()" accent="green" />
                 <x-stat-card icon="users" label="Assigned people" :value="$roles->sum('users_count')" accent="pink" />

@@ -7,7 +7,7 @@
         <div class="max-w-3xl mx-auto sm:px-6 lg:px-8 space-y-6">
             <x-status-banner />
 
-            <div class="grid grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <x-stat-card icon="sparkles" label="Total skills" :value="$skills->count()" accent="violet" />
                 <x-stat-card icon="building-office" label="Categories" :value="$categories->count()" accent="pink" />
                 <x-stat-card icon="users" label="Skills in use" :value="$skills->where('users_count', '>', 0)->count()" accent="green" />

@@ -30,6 +30,7 @@
             </div>
 
             <x-panel icon="document-text" title="Revenue by service" accent="violet" :subtitle="$from->format('M j, Y') . ' – ' . $to->format('M j, Y')">
+                <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="text-left text-xs uppercase tracking-wider text-gray-400 border-b border-gray-100 dark:border-gray-700">
@@ -50,9 +51,11 @@
                         @endforelse
                     </tbody>
                 </table>
+                </div>
             </x-panel>
 
             <x-panel icon="currency-dollar" title="Payroll by type" accent="amber">
+                <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="text-left text-xs uppercase tracking-wider text-gray-400 border-b border-gray-100 dark:border-gray-700">
@@ -73,6 +76,7 @@
                         @endforelse
                     </tbody>
                 </table>
+                </div>
             </x-panel>
 
             <x-panel icon="bolt" title="Standing fixed-salary run-rate" accent="pink"

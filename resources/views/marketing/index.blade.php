@@ -7,7 +7,7 @@
         <div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-6">
             <x-status-banner />
 
-            <div class="grid grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <x-stat-card icon="document-text" label="Campaigns sent" :value="$stats['campaigns']" accent="violet" />
                 <x-stat-card icon="users" label="Recipients reached" :value="$stats['recipients']" accent="green" />
                 <x-stat-card icon="user-circle" label="Total clients" :value="$stats['clients']" accent="pink" />
