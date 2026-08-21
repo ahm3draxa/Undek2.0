@@ -583,7 +583,21 @@ body::after {
       <div style="display:flex;align-items:center;margin-bottom:18px">
         <x-logo-lockup style="font-size:19px;letter-spacing:-.02em" />
       </div>
-      <p style="font-size:15px;line-height:1.6;color:#9b9bb0;margin:0;max-width:34ch">A full-stack digital studio. We design, build, rank, and grow — under one roof, with milestones you can see.</p>
+      <p style="font-size:15px;line-height:1.6;color:#9b9bb0;margin:0 0 20px;max-width:34ch">A full-stack digital studio. We design, build, rank, and grow — under one roof, with milestones you can see.</p>
+      <div style="display:flex;gap:10px">
+        <a href="https://www.facebook.com/profile.php?id=100064091621113" target="_blank" rel="noopener noreferrer" aria-label="undek on Facebook" style="width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);display:flex;align-items:center;justify-content:center;color:#9b9bb0;transition:.25s" style-hover="color:#f5f5fa;border-color:rgba(34,211,238,.4);background:rgba(34,211,238,.08)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 21v-7.9h2.65l.4-3.08h-3.05V8.06c0-.89.25-1.5 1.52-1.5h1.63V3.85A21.8 21.8 0 0 0 14.1 3.7c-2.42 0-4.08 1.48-4.08 4.19v2.13H7.36v3.08h2.66V21h3.48Z"/></svg>
+        </a>
+        <a href="https://www.instagram.com/undekofficial/" target="_blank" rel="noopener noreferrer" aria-label="undek on Instagram" style="width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);display:flex;align-items:center;justify-content:center;color:#9b9bb0;transition:.25s" style-hover="color:#f5f5fa;border-color:rgba(255,93,162,.4);background:rgba(255,93,162,.08)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.4" cy="6.6" r="1"/></svg>
+        </a>
+        <a href="https://www.youtube.com/@undek.official" target="_blank" rel="noopener noreferrer" aria-label="undek on YouTube" style="width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);display:flex;align-items:center;justify-content:center;color:#9b9bb0;transition:.25s" style-hover="color:#f5f5fa;border-color:rgba(255,176,32,.4);background:rgba(255,176,32,.08)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M22 12s0-3.3-.42-4.86a2.78 2.78 0 0 0-1.96-2C17.9 4.7 12 4.7 12 4.7s-5.9 0-7.62.44a2.78 2.78 0 0 0-1.96 2C2 8.7 2 12 2 12s0 3.3.42 4.86a2.78 2.78 0 0 0 1.96 1.96C6.1 19.3 12 19.3 12 19.3s5.9 0 7.62-.48a2.78 2.78 0 0 0 1.96-1.96C22 15.3 22 12 22 12Z"/><path d="M10 9.6 15 12l-5 2.4V9.6Z" fill="#08080c"/></svg>
+        </a>
+        <a href="https://www.linkedin.com/company/144573084/" target="_blank" rel="noopener noreferrer" aria-label="undek on LinkedIn" style="width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);display:flex;align-items:center;justify-content:center;color:#9b9bb0;transition:.25s" style-hover="color:#f5f5fa;border-color:rgba(91,140,255,.4);background:rgba(91,140,255,.08)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6.94 8.5H3.56V20h3.38V8.5ZM5.25 3.7a1.96 1.96 0 1 0 0 3.92 1.96 1.96 0 0 0 0-3.92ZM20.44 20h-3.37v-6.06c0-1.44-.03-3.3-2.02-3.3-2.02 0-2.33 1.58-2.33 3.2V20H9.36V8.5h3.24v1.57h.05c.45-.86 1.56-1.76 3.2-1.76 3.43 0 4.06 2.25 4.06 5.19V20Z"/></svg>
+        </a>
+      </div>
     </div>
     <div>
       <div style="font-family:'JetBrains Mono';font-size:12px;letter-spacing:.14em;color:#5c5c72;margin-bottom:16px">SERVICES</div>

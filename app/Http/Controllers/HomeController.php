@@ -57,7 +57,13 @@ class HomeController extends Controller
     private function buildTeamTree(Collection $byManager, int|string $key): Collection
     {
         return $byManager->get($key, collect())
-            ->sortBy('name')
+            // CEOs first, then most senior position (rank) to least, name as the
+            // final tiebreaker. Applies at every level so sub-teams read the same way.
+            ->sortBy(fn ($user) => [
+                $user->hasRole('ceo') ? 0 : 1,
+                -($user->employeeProfile?->position?->rank ?? -1),
+                $user->name,
+            ])
             ->map(fn ($user) => [
                 'user' => $user,
                 'children' => $this->buildTeamTree($byManager, $user->id),
