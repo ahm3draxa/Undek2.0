@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Collection;
 
 class Project extends Model
 {
@@ -29,6 +30,43 @@ class Project extends Model
             'due_date' => 'date',
             'delivered_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Lead, team member, or CEO/admin — everyone who sees internal detail
+     * (team channel, task assignments, submitted work). Never the client.
+     */
+    public function hasInternalAccess(User $user): bool
+    {
+        return $user->hasAnyRole(['ceo', 'admin'])
+            || $this->lead_expert_id === $user->id
+            || $this->teamMembers()->where('user_id', $user->id)->exists();
+    }
+
+    /**
+     * People this user may hand a milestone to on this project. CEO/admin and
+     * the lead can delegate to anyone on the project; anyone else on the
+     * project only to the people they directly supervise (e.g. their own
+     * interns), per the org chart's manager field.
+     */
+    public function assignableBy(User $user): Collection
+    {
+        $this->loadMissing('leadExpert', 'teamMembers.user.employeeProfile');
+
+        $people = collect([$this->leadExpert])->filter()
+            ->concat($this->teamMembers->pluck('user')->filter())
+            ->unique('id')
+            ->values();
+
+        if ($user->hasAnyRole(['ceo', 'admin']) || $this->lead_expert_id === $user->id) {
+            return $people;
+        }
+
+        if (! $people->contains('id', $user->id)) {
+            return collect();
+        }
+
+        return $people->filter(fn (User $person) => $person->employeeProfile?->manager_id === $user->id)->values();
     }
 
     public function quoteRequest(): BelongsTo

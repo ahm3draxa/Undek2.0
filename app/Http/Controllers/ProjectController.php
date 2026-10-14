@@ -51,7 +51,7 @@ class ProjectController extends Controller
 
         abort_unless($allowed, 403);
 
-        $project->load(['client', 'leadExpert', 'teamMembers.user', 'milestones.assignedTo', 'contributions.user', 'quotation', 'quoteRequest.service', 'quoteRequest.skills', 'feedbacks.author']);
+        $project->load(['client', 'leadExpert', 'teamMembers.user.employeeProfile', 'milestones.assignedTo', 'milestones.assignedBy', 'milestones.submissions.user', 'milestones.submissions.files','contributions.user', 'quotation', 'quoteRequest.service', 'quoteRequest.skills', 'feedbacks.author']);
 
         // Interns are included here (not just expert/employee) so a specialist or lead
         // can pull in their own interns for department-specific work — e.g. design

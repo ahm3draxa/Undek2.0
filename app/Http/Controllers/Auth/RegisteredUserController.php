@@ -35,7 +35,10 @@ class RegisteredUserController extends Controller
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            // dns: the domain must actually accept mail (MX/A record), which
+            // catches typos like gmial.com before a verification email is sent
+            // into the void. Proof of ownership comes from the emailed link.
+            'email' => ['required', 'string', 'lowercase', 'email:rfc,dns', 'max:255', 'unique:'.User::class],
             // max:72 matches bcrypt's actual effective input limit — bytes past that
             // are silently ignored by the hasher, so without a cap here two different
             // long passwords sharing the same first 72 bytes would hash identically.

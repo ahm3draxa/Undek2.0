@@ -33,6 +33,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'manage payroll',
             'manage employees',
             'view own projects',
+            'view inbox',
         ];
 
         foreach ($permissions as $permission) {
@@ -55,6 +56,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'assign project team',
             'manage milestones',
             'manage employees',
+            'view inbox',
         ]);
 
         $specialist = Role::findOrCreate('specialist', 'web');

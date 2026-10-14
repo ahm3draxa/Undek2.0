@@ -27,7 +27,8 @@
                     </tr>
                     <tr>
                         <td style="padding:20px 32px;background-color:#f4f4f7;color:#8a8a99;font-size:12px;">
-                            You're receiving this email because you're a valued Undek client. If you'd rather not receive occasional updates like this, just reply and let us know.
+                            You're receiving this email from Undek (undek.com). If you'd rather not receive updates like this,
+                            <a href="{{ $unsubscribeUrl }}" style="color:#8a8a99;text-decoration:underline;">unsubscribe here</a>.
                         </td>
                     </tr>
                 </table>

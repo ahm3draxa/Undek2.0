@@ -2,7 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\QuoteRequest;
 use App\Models\User;
+use Illuminate\Auth\Events\Verified;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -31,6 +34,10 @@ class AppServiceProvider extends ServiceProvider
         if (request()->isSecure() || request()->server->get('HTTP_X_FORWARDED_PROTO') === 'https') {
             URL::forceScheme('https');
         }
+
+        // Guest quote requests are only handed to an account once its email is
+        // proven — see QuoteRequest::claimGuestRequestsFor().
+        Event::listen(Verified::class, fn (Verified $event) => QuoteRequest::claimGuestRequestsFor($event->user));
 
         Gate::define('manage-marketing', function (User $user) {
             return $user->hasAnyRole(['ceo', 'admin'])

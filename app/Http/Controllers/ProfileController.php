@@ -55,8 +55,9 @@ class ProfileController extends Controller
     {
         $data = collect($request->validated())->except('avatar')->all();
         $request->user()->fill($data);
+        $emailChanged = $request->user()->isDirty('email');
 
-        if ($request->user()->isDirty('email')) {
+        if ($emailChanged) {
             $request->user()->email_verified_at = null;
         }
 
@@ -69,6 +70,11 @@ class ProfileController extends Controller
         }
 
         $request->user()->save();
+
+        // A changed address has to be confirmed before the portal unlocks again.
+        if ($emailChanged) {
+            $request->user()->sendEmailVerificationNotification();
+        }
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }

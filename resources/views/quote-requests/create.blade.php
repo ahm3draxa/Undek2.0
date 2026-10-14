@@ -1,4 +1,4 @@
-<x-guest-layout :title="__('Request a quote')">
+<x-guest-layout :title="__('Request a quote')" description="Tell Undek about your web, SEO, IT support, design or video project and get a tailored proposal from a specialist.">
     <div class="mb-6">
         <h1 class="font-space text-2xl font-bold text-[#f5f5fa]">Tell us about your project</h1>
         <p class="text-sm text-gray-400 mt-1.5">Pick a service and give us the details — a specialist will send a tailored quote.</p>
@@ -79,12 +79,30 @@
             </p>
         </div>
 
-        <div>
-            <x-auth.label for="reference_images" value="Reference images (optional, up to 5)" />
-            <input id="reference_images" type="file" name="reference_images[]" multiple accept="image/*"
+        <div x-data="{
+                maxFiles: {{ $uploadRules['max_files'] }},
+                maxTotal: {{ $uploadRules['max_total_kb'] * 1024 }},
+                warning: '',
+                check(input) {
+                    const files = [...input.files];
+                    const total = files.reduce((sum, f) => sum + f.size, 0);
+                    this.warning = files.length > this.maxFiles
+                        ? `You can attach at most ${this.maxFiles} files.`
+                        : total > this.maxTotal
+                            ? `These files add up to ${(total / 1048576).toFixed(1)} MB — the limit is ${Math.round(this.maxTotal / 1048576)} MB in total.`
+                            : '';
+                },
+            }">
+            <x-auth.label for="attachments" value="Samples & references (optional)" />
+            <input id="attachments" type="file" name="attachments[]" multiple accept="{{ $uploadAccept }}" @change="check($event.target)"
                 class="block w-full text-sm text-gray-300 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-white/10 file:text-gray-100 hover:file:bg-white/20 rounded-lg bg-white/5 border border-white/10">
-            <x-auth.error :messages="$errors->get('reference_images')" />
-            <x-auth.error :messages="$errors->get('reference_images.0')" />
+            <p class="text-xs text-gray-500 mt-2">
+                Up to {{ $uploadRules['max_files'] }} files — images (JPG, PNG, WebP, up to 10 MB), videos (MP4, MOV, WebM, up to 50 MB) or documents (PDF, TXT).
+                Every file is checked before it's accepted.
+            </p>
+            <p x-show="warning" x-text="warning" x-cloak class="text-xs text-amber-400 mt-1.5"></p>
+            <x-auth.error :messages="$errors->get('attachments')" />
+            <x-auth.error :messages="collect($errors->get('attachments.*'))->flatten()->all()" />
         </div>
 
         @guest

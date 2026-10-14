@@ -6,6 +6,7 @@ use App\Http\Controllers\CompensationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\InboxController;
 use App\Http\Controllers\MarketingController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\MilestoneController;
@@ -23,8 +24,10 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\SkillController;
+use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TwoFactorAuthenticationController;
 use App\Http\Controllers\UserController;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -39,6 +42,13 @@ Route::get('/privacy-policy', [HomeController::class, 'privacyPolicy'])->name('p
 Route::post('/chatbot', [ChatbotController::class, 'respond'])->middleware('throttle:20,1')->name('chatbot.respond');
 
 Route::get('/certificates/verify/{code}', [CertificateController::class, 'verify'])->name('certificates.verify');
+
+// Marketing unsubscribe — signed links from campaign emails. The POST is also the
+// one-click List-Unsubscribe target that mail clients call directly, so no CSRF.
+Route::get('/unsubscribe/{email}', [MarketingController::class, 'unsubscribe'])->middleware('signed')->name('marketing.unsubscribe');
+Route::post('/unsubscribe/{email}', [MarketingController::class, 'confirmUnsubscribe'])
+    ->middleware(['signed', 'throttle:20,1'])
+    ->withoutMiddleware(ValidateCsrfToken::class);
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -56,6 +66,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Quote requests — viewable by owner/assignee, listed per role inside the controller.
     Route::get('/quote-requests', [QuoteRequestController::class, 'index'])->name('quote-requests.index');
     Route::get('/quote-requests/{quoteRequest}', [QuoteRequestController::class, 'show'])->name('quote-requests.show');
+    Route::get('/quote-requests/{quoteRequest}/attachments/{attachment}', [QuoteRequestController::class, 'attachment'])->name('quote-requests.attachments.show');
     Route::get('/quote-requests/{quoteRequest}/messages', [MessageController::class, 'quoteRequestIndex'])->name('quote-requests.messages.index');
     Route::post('/quote-requests/{quoteRequest}/messages', [MessageController::class, 'storeQuoteRequestMessage'])->name('quote-requests.messages.store');
 
@@ -90,6 +101,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/projects/{project}/milestones', [MilestoneController::class, 'store'])->name('milestones.store');
     Route::patch('/projects/{project}/milestones/{milestone}', [MilestoneController::class, 'update'])->name('milestones.update');
     Route::patch('/projects/{project}/milestones/{milestone}/assign', [MilestoneController::class, 'assign'])->name('milestones.assign');
+    Route::post('/projects/{project}/milestones/{milestone}/submissions', [MilestoneController::class, 'submit'])->name('milestones.submit');
+    Route::get('/projects/{project}/milestones/{milestone}/files/{file}', [MilestoneController::class, 'submissionFile'])->name('milestones.files.show');
+
+    // My tasks — milestones assigned to me, and ones I've handed out.
+    Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
     Route::delete('/projects/{project}/milestones/{milestone}', [MilestoneController::class, 'destroy'])->name('milestones.destroy');
 
     Route::middleware('permission:assign project team')->group(function () {
@@ -173,6 +189,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
         Route::patch('/users/{user}/email', [UserController::class, 'updateEmail'])->name('users.update-email');
         Route::post('/users/{user}/disable-2fa', [UserController::class, 'disableTwoFactor'])->name('users.disable-2fa');
+    });
+
+    // Shared company inboxes (info@ / support@).
+    Route::middleware('permission:view inbox')->group(function () {
+        Route::get('/inbox', [InboxController::class, 'index'])->name('inbox.index');
+        Route::post('/inbox/refresh', [InboxController::class, 'refresh'])->name('inbox.refresh');
+        Route::get('/inbox/{message}', [InboxController::class, 'show'])->name('inbox.show');
+        Route::get('/inbox/{message}/body', [InboxController::class, 'body'])->name('inbox.body');
+        Route::post('/inbox/{message}/reply', [InboxController::class, 'reply'])->name('inbox.reply');
+        Route::post('/inbox/{message}/unread', [InboxController::class, 'markUnread'])->name('inbox.unread');
+        Route::get('/inbox/{message}/attachments/{attachment}', [InboxController::class, 'attachment'])->name('inbox.attachments.show');
     });
 
     // Roles & permissions — what each role is allowed to do.

@@ -34,6 +34,21 @@ class QuoteRequest extends Model
         ];
     }
 
+    /**
+     * Hands guest-submitted requests made with this user's email over to their
+     * account — only once that email is verified as theirs.
+     */
+    public static function claimGuestRequestsFor(User $user): void
+    {
+        if (! $user->hasVerifiedEmail()) {
+            return;
+        }
+
+        static::whereNull('client_id')
+            ->whereRaw('LOWER(guest_email) = ?', [strtolower($user->email)])
+            ->update(['client_id' => $user->id]);
+    }
+
     public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class);

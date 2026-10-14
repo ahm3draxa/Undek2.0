@@ -115,4 +115,24 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Marketing campaigns
+    |--------------------------------------------------------------------------
+    |
+    | Campaigns go out from the configured mailbox (the SMTP account must be
+    | allowed to send as this address — Hostinger rejects mismatches), named
+    | after the specialist who sent it, with replies going to them directly.
+    |
+    | max_per_send caps one campaign; per_minute is how many queued emails the
+    | scheduler sends each minute, to stay under the mail host's sending limits.
+    |
+    */
+
+    'marketing' => [
+        'address' => env('MAIL_MARKETING_ADDRESS', env('MAIL_FROM_ADDRESS', 'hello@example.com')),
+        'max_per_send' => (int) env('MARKETING_MAX_PER_SEND', 500),
+        'per_minute' => (int) env('MARKETING_PER_MINUTE', 15),
+    ],
+
 ];

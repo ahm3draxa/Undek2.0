@@ -69,9 +69,12 @@
                     'in_progress' => ['icon' => 'bolt', 'label' => 'In progress', 'active' => 'bg-amber-500 text-white', 'idle' => 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'],
                     'completed' => ['icon' => 'check-circle', 'label' => 'Completed', 'active' => 'bg-emerald-500 text-white', 'idle' => 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'],
                 ];
-                // Who a milestone can actually be delegated to — the lead plus whoever's
-                // currently on the team (including any interns added for this project).
-                $assignablePeople = collect([$project->leadExpert])->filter()->concat($project->teamMembers->pluck('user'))->unique('id');
+                // Who this viewer may delegate a milestone to — everyone on the project for
+                // CEO/admin and the lead; otherwise only the people they directly supervise.
+                $assignablePeople = $project->assignableBy($user);
+                $uploader = app(\App\Services\Uploads\SecureUploader::class);
+                $submissionAccept = $uploader->acceptAttribute('milestone_submission');
+                $submissionRules = $uploader->profile('milestone_submission');
             @endphp
 
             <x-panel icon="clock" title="Milestones" accent="amber" subtitle="Assign individual milestones to whoever's actually doing that piece of work.">
@@ -82,17 +85,23 @@
                             // even without the broader 'manage milestones' permission.
                             $canActOnThis = $canManageMilestones || $milestone->assigned_to === $user->id;
                         @endphp
-                        <div class="border border-gray-100 dark:border-gray-700 rounded-md px-4 py-3 space-y-2">
+                        <div id="milestone-{{ $milestone->id }}" class="scroll-mt-24 border border-gray-100 dark:border-gray-700 rounded-md px-4 py-3 space-y-2 target:ring-2 target:ring-cyan-400">
                             <div class="flex items-center justify-between gap-3">
                                 <div>
                                     <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ $milestone->title }}</p>
+                                    @if ($milestone->description)
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 whitespace-pre-line">{{ $milestone->description }}</p>
+                                    @endif
                                     <div class="flex items-center flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
                                         @if ($milestone->due_date)
-                                            <p class="text-xs text-gray-400">Due {{ $milestone->due_date->format('M j, Y') }}</p>
+                                            <p class="text-xs {{ $milestone->isOverdue() ? 'text-red-500 font-semibold' : 'text-gray-400' }}">{{ $milestone->isOverdue() ? 'Overdue · ' : 'Due ' }}{{ $milestone->due_date->format('M j, Y') }}</p>
                                         @endif
                                         @if ($milestone->assignedTo && $canSeeTeamChannel)
                                             <span class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                                                 <x-icon name="user-circle" class="w-3.5 h-3.5" />{{ $milestone->assignedTo->name }}
+                                                @if ($milestone->assignedBy)
+                                                    <span class="text-gray-400">· assigned by {{ $milestone->assignedBy->name }}</span>
+                                                @endif
                                             </span>
                                         @endif
                                     </div>
@@ -116,7 +125,65 @@
                                 @endif
                             </div>
 
-                            @if ($canManage && $assignablePeople->isNotEmpty())
+                            @if ($canSeeTeamChannel && $milestone->submissions->isNotEmpty())
+                                <div class="space-y-2 pl-3 border-l-2 border-cyan-400/40">
+                                    @foreach ($milestone->submissions as $submission)
+                                        <div class="text-xs">
+                                            <p class="text-gray-500 dark:text-gray-400">
+                                                <span class="font-medium text-gray-700 dark:text-gray-200">{{ $submission->user->name ?? 'Someone' }}</span>
+                                                submitted {{ $submission->created_at->diffForHumans() }}
+                                                @if ($submission->marked_done)
+                                                    <span class="text-emerald-600 dark:text-emerald-400">· marked done</span>
+                                                @endif
+                                            </p>
+                                            @if ($submission->note)
+                                                <p class="text-gray-700 dark:text-gray-300 mt-1 whitespace-pre-line">{{ $submission->note }}</p>
+                                            @endif
+                                            @if ($submission->files->isNotEmpty())
+                                                <div class="flex flex-wrap gap-1.5 mt-1.5">
+                                                    @foreach ($submission->files as $file)
+                                                        <a href="{{ route('milestones.files.show', [$project, $milestone, $file]) }}" target="_blank" rel="noopener"
+                                                            class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:ring-1 hover:ring-cyan-400">
+                                                            <x-icon name="document-text" class="w-3.5 h-3.5 text-gray-400" />
+                                                            <span class="max-w-[14rem] truncate">{{ $file->original_name }}</span>
+                                                            <span class="text-gray-400">{{ $uploader->humanSize($file->size) }}</span>
+                                                        </a>
+                                                    @endforeach
+                                                </div>
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
+
+                            @if ($canActOnThis && $milestone->status !== 'completed')
+                                <details class="group" @if ($errors->any() && old('submission_for') == $milestone->id) open @endif>
+                                    <summary class="cursor-pointer text-xs font-medium text-cyan-600 dark:text-cyan-400 hover:underline list-none">
+                                        <span class="group-open:hidden">+ Submit work</span><span class="hidden group-open:inline">− Submit work</span>
+                                    </summary>
+                                    <form method="POST" action="{{ route('milestones.submit', [$project, $milestone]) }}" enctype="multipart/form-data" class="mt-2 space-y-2">
+                                        @csrf
+                                        <input type="hidden" name="submission_for" value="{{ $milestone->id }}">
+                                        <textarea name="note" rows="3" maxlength="5000" placeholder="What did you do? Links, notes, anything the reviewer should know…"
+                                            class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 text-sm shadow-sm">{{ old('submission_for') == $milestone->id ? old('note') : '' }}</textarea>
+                                        <input type="file" name="files[]" multiple accept="{{ $submissionAccept }}"
+                                            class="block w-full text-xs text-gray-600 dark:text-gray-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-gray-100 dark:file:bg-gray-700 file:text-gray-700 dark:file:text-gray-200">
+                                        <p class="text-[11px] text-gray-400">Up to {{ $submissionRules['max_files'] }} files: images, video, PDF, TXT, Word/Excel/PowerPoint or ZIP.</p>
+                                        @if (old('submission_for') == $milestone->id)
+                                            <x-input-error :messages="collect($errors->get('note'))->concat($errors->get('files'))->concat(collect($errors->get('files.*'))->flatten())->all()" />
+                                        @endif
+                                        <div class="flex flex-wrap items-center justify-between gap-2">
+                                            <label class="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-200">
+                                                <input type="checkbox" name="mark_done" value="1" class="rounded border-gray-300 dark:border-gray-600" style="accent-color:#34e0a1">
+                                                Mark this task as done
+                                            </label>
+                                            <x-primary-button class="!text-xs">Submit</x-primary-button>
+                                        </div>
+                                    </form>
+                                </details>
+                            @endif
+
+                            @if ($assignablePeople->isNotEmpty() && (! $milestone->assigned_to || $assignablePeople->contains('id', $milestone->assigned_to)))
                                 <form method="POST" action="{{ route('milestones.assign', [$project, $milestone]) }}" class="flex items-center gap-1.5">
                                     @csrf @method('PATCH')
                                     <x-icon name="user-circle" class="w-3.5 h-3.5 text-gray-400 shrink-0" />

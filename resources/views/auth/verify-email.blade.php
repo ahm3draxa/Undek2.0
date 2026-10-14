@@ -4,6 +4,10 @@
         <p class="text-sm text-gray-400 mt-1.5">
             {{ __("Thanks for signing up! Click the link we emailed you to verify your address. Didn't get it? We'll gladly send another.") }}
         </p>
+        <p class="text-sm text-gray-400 mt-3">
+            Sent to <span class="font-medium text-gray-200">{{ auth()->user()->email }}</span>.
+            Check your spam folder too. Wrong address? Log out and sign up again with the right one.
+        </p>
     </div>
 
     @if (session('status') == 'verification-link-sent')

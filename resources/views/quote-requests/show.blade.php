@@ -43,12 +43,21 @@
 
                 @if ($quoteRequest->attachments->isNotEmpty())
                     <div>
-                        <div class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Reference images</div>
+                        <div class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Samples &amp; references</div>
                         <div class="flex flex-wrap gap-3">
                             @foreach ($quoteRequest->attachments as $attachment)
-                                <a href="{{ \Illuminate\Support\Facades\Storage::url($attachment->path) }}" target="_blank" rel="noopener" class="block w-20 h-20 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 hover:ring-2 hover:ring-cyan-400 transition">
-                                    <img src="{{ \Illuminate\Support\Facades\Storage::url($attachment->path) }}" alt="{{ $attachment->original_name }}" class="w-full h-full object-cover">
-                                </a>
+                                @if ($attachment->kind() === 'image')
+                                    <a href="{{ $attachment->url() }}" target="_blank" rel="noopener" title="{{ $attachment->original_name }}" class="block w-20 h-20 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 hover:ring-2 hover:ring-cyan-400 transition">
+                                        <img src="{{ $attachment->url() }}" alt="{{ $attachment->original_name }}" class="w-full h-full object-cover" loading="lazy">
+                                    </a>
+                                @elseif ($attachment->kind() === 'video')
+                                    <video src="{{ $attachment->url() }}" controls preload="metadata" title="{{ $attachment->original_name }}" class="h-40 max-w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-black"></video>
+                                @else
+                                    <a href="{{ $attachment->url() }}" target="_blank" rel="noopener" class="flex items-center gap-2 h-20 px-4 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-200 hover:ring-2 hover:ring-cyan-400 transition">
+                                        <x-icon name="document-text" class="w-5 h-5 text-gray-400 shrink-0" />
+                                        <span class="max-w-[12rem] truncate">{{ $attachment->original_name }}</span>
+                                    </a>
+                                @endif
                             @endforeach
                         </div>
                     </div>

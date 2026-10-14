@@ -3,17 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\FiltersBySkill;
+use App\Http\Controllers\Concerns\StreamsStoredFiles;
 use App\Models\QuoteRequest;
+use App\Models\QuoteRequestAttachment;
 use App\Models\Service;
 use App\Models\Skill;
 use App\Models\User;
+use App\Rules\SafeUpload;
+use App\Services\Uploads\SecureUploader;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class QuoteRequestController extends Controller
 {
-    use FiltersBySkill;
+    use FiltersBySkill, StreamsStoredFiles;
 
     /**
      * Admin/specialist queue of incoming quote requests.
@@ -66,10 +71,13 @@ class QuoteRequestController extends Controller
             return [$service->id => $grouped];
         });
 
-        return view('quote-requests.create', compact('services', 'selectedServiceId', 'skillsByService'));
+        $uploadRules = app(SecureUploader::class)->profile('quote_reference');
+        $uploadAccept = app(SecureUploader::class)->acceptAttribute('quote_reference');
+
+        return view('quote-requests.create', compact('services', 'selectedServiceId', 'skillsByService', 'uploadRules', 'uploadAccept'));
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, SecureUploader $uploader): RedirectResponse
     {
         $user = $request->user();
 
@@ -78,12 +86,11 @@ class QuoteRequestController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
             'guest_name' => [$user ? 'nullable' : 'required', 'string', 'max:255'],
-            'guest_email' => [$user ? 'nullable' : 'required', 'email', 'max:255'],
+            'guest_email' => [$user ? 'nullable' : 'required', 'email:rfc,dns', 'max:255'],
             'guest_phone' => ['nullable', 'string', 'max:50'],
             'skills' => ['array'],
             'skills.*' => ['exists:skills,id'],
-            'reference_images' => ['array', 'max:5'],
-            'reference_images.*' => ['image', 'max:5120'],
+            ...SafeUpload::rulesFor('attachments', 'quote_reference'),
         ]);
 
         $quoteRequest = QuoteRequest::create([
@@ -101,15 +108,8 @@ class QuoteRequestController extends Controller
             $quoteRequest->skills()->sync($data['skills']);
         }
 
-        foreach ($request->file('reference_images', []) as $image) {
-            $path = $image->store('quote-references', 'public');
-
-            $quoteRequest->attachments()->create([
-                'path' => $path,
-                'original_name' => $image->getClientOriginalName(),
-                'mime_type' => $image->getClientMimeType(),
-                'size' => $image->getSize(),
-            ]);
+        foreach ($request->file('attachments', []) as $file) {
+            $quoteRequest->attachments()->create($uploader->store($file, 'quote-references'));
         }
 
         // So that if a guest registers/logs in from the thank-you page, they land
@@ -142,6 +142,18 @@ class QuoteRequestController extends Controller
             'quoteRequest', 'candidateSpecialists', 'skillMatched', 'specialistEscalatedTo',
             'candidateExperts', 'expertSkillMatched', 'expertEscalatedTo'
         ));
+    }
+
+    /**
+     * Attachments are private files — only people who can see the request
+     * itself can open them.
+     */
+    public function attachment(QuoteRequest $quoteRequest, QuoteRequestAttachment $attachment): StreamedResponse
+    {
+        abort_unless($attachment->quote_request_id === $quoteRequest->id, 404);
+        $this->authorizeView($quoteRequest);
+
+        return $this->streamStoredFile($attachment->disk, $attachment->path, $attachment->original_name, $attachment->mime_type);
     }
 
     /**

@@ -92,6 +92,8 @@ class UserController extends Controller
             'email_verified_at' => null,
         ])->save();
 
+        $user->sendEmailVerificationNotification();
+
         Log::warning('Admin changed a user\'s email', [
             'actor_id' => $request->user()->id,
             'actor_email' => $request->user()->email,

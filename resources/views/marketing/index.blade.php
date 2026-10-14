@@ -7,14 +7,21 @@
         <div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-6">
             <x-status-banner />
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <x-stat-card icon="document-text" label="Campaigns sent" :value="$stats['campaigns']" accent="violet" />
                 <x-stat-card icon="users" label="Recipients reached" :value="$stats['recipients']" accent="green" />
                 <x-stat-card icon="user-circle" label="Total clients" :value="$stats['clients']" accent="pink" />
+                <x-stat-card icon="x-circle" label="Unsubscribed" :value="$stats['unsubscribed']" accent="amber" />
             </div>
 
-            <x-panel icon="sparkles" title="Send a campaign" accent="amber" subtitle="Emails are delivered through the mail driver configured for this environment."
-                x-data="{ audience: '{{ old('audience', 'all_clients') }}' }">
+            <x-panel icon="sparkles" title="Send a campaign" accent="amber" subtitle="Sent from Undek's mailbox under your name — replies come straight to you. Unsubscribed addresses are skipped automatically."
+                x-data="{
+                    audience: '{{ old('audience', 'all_clients') }}',
+                    emails: @js(old('emails', '')),
+                    get emailCount() {
+                        return new Set(this.emails.split(/[\s,;]+/).map(e => e.trim().toLowerCase()).filter(Boolean)).size;
+                    },
+                }">
 
                 <form method="POST" action="{{ route('marketing.store') }}" class="space-y-4">
                     @csrf
@@ -43,6 +50,10 @@
                                 <input type="radio" name="audience" value="selected" x-model="audience" style="accent-color:#7c5cff">
                                 Selected clients
                             </label>
+                            <label class="flex items-center gap-2">
+                                <input type="radio" name="audience" value="manual" x-model="audience" style="accent-color:#7c5cff">
+                                Paste a list
+                            </label>
                         </div>
                         <x-input-error :messages="$errors->get('audience')" class="mt-2" />
                     </div>
@@ -63,6 +74,18 @@
                         <x-input-error :messages="$errors->get('client_ids')" class="mt-2" />
                     </div>
 
+                    <div x-show="audience === 'manual'" x-cloak>
+                        <x-input-label for="emails" value="Email addresses — one per line" />
+                        <textarea id="emails" name="emails" rows="8" x-model="emails" :required="audience === 'manual'"
+                            placeholder="ali@company.com&#10;sara@example.pk&#10;…"
+                            class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 shadow-sm font-mono text-sm"></textarea>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            <span x-text="emailCount"></span> unique address(es) · up to {{ $maxPerSend }} per campaign.
+                            Pasting from a spreadsheet works too — commas and semicolons are fine. Only send to people who expect to hear from Undek.
+                        </p>
+                        <x-input-error :messages="$errors->get('emails')" class="mt-2" />
+                    </div>
+
                     <x-primary-button>Send campaign</x-primary-button>
                 </form>
             </x-panel>
@@ -77,7 +100,7 @@
                             </div>
                             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                 Sent by {{ $campaign->sender->name ?? 'Unknown' }} to {{ $campaign->recipients_count }} recipient(s)
-                                &middot; {{ $campaign->audience === 'all_clients' ? 'All clients' : 'Selected clients' }}
+                                &middot; {{ ['all_clients' => 'All clients', 'selected' => 'Selected clients', 'manual' => 'Pasted list'][$campaign->audience] ?? $campaign->audience }}
                             </p>
                         </div>
                     @empty
