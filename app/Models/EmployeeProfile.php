@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Http\Controllers\HomeController;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Cache;
 
 class EmployeeProfile extends Model
 {
@@ -92,5 +94,10 @@ class EmployeeProfile extends Model
                 $profile->department_id = Position::find($profile->position_id)?->department_id ?? $profile->department_id;
             }
         });
+
+        // The landing page caches the public team tree — drop it so visibility,
+        // position and manager changes show immediately.
+        static::saved(fn () => Cache::forget(HomeController::CACHE_KEY));
+        static::deleted(fn () => Cache::forget(HomeController::CACHE_KEY));
     }
 }

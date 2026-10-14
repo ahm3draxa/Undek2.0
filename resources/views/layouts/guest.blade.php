@@ -6,6 +6,10 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <title>{{ $title ?? __('Welcome') }} — {{ config('app.name', 'undek') }}</title>
+        @isset($description)
+            <meta name="description" content="{{ $description }}">
+            <link rel="canonical" href="{{ url()->current() }}">
+        @endisset
         <link rel="icon" type="image/svg+xml" href="{{ asset('images/logo-mark.svg') }}?v=2">
 
         <!-- Fonts -->

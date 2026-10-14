@@ -72,7 +72,7 @@
         },
         init() {
             this.refresh().then(() => this.scrollToBottom());
-            setInterval(() => this.refresh(), 4000);
+            pollWhileVisible(() => this.refresh(), 15000);
         },
     }"
 >

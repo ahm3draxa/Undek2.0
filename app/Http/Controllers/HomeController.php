@@ -7,11 +7,26 @@ use App\Models\ProjectFeedback;
 use App\Models\Service;
 use App\Models\User;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
 class HomeController extends Controller
 {
+    /**
+     * The landing page is the busiest page and its data barely changes, so it's
+     * cached instead of re-queried on every visit — shared hosting caps MySQL
+     * usage per hour for the whole site. Service and public-profile edits clear
+     * it straight away; anything else (names, avatars, new ratings) shows up
+     * once it expires.
+     */
+    public const CACHE_KEY = 'home.landing-data';
+
     public function index(): View
+    {
+        return view('welcome', Cache::remember(self::CACHE_KEY, now()->addMinutes(10), fn () => $this->landingData()));
+    }
+
+    private function landingData(): array
     {
         $services = Service::where('is_active', true)->orderBy('name')->get();
 
@@ -51,7 +66,7 @@ class HomeController extends Controller
 
         $team = $this->buildTeamTree($byManager, 'root');
 
-        return view('welcome', compact('services', 'team', 'deliveredProjects', 'avgRating', 'ratedProjectsCount'));
+        return compact('services', 'team', 'deliveredProjects', 'avgRating', 'ratedProjectsCount');
     }
 
     private function buildTeamTree(Collection $byManager, int|string $key): Collection

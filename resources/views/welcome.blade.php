@@ -4,8 +4,58 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<title>{{ config('app.name', 'undek') }} – Where the IT Flocks</title>
+@php
+  $seoTitle = 'Undek – Web Development, SEO & IT Support Agency | Pakistan';
+  $seoDescription = 'Undek is a full-stack digital studio: web development, SEO, IT support, graphic design and video editing. One accountable team with milestones you can track.';
+@endphp
+<title>{{ $seoTitle }}</title>
+<meta name="description" content="{{ $seoDescription }}">
+<link rel="canonical" href="{{ url('/') }}">
+<meta name="theme-color" content="#08080c">
 <link rel="icon" type="image/svg+xml" href="{{ asset('images/logo-mark.svg') }}?v=2">
+<link rel="apple-touch-icon" href="{{ asset('images/logo-512.png') }}">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Undek">
+<meta property="og:title" content="{{ $seoTitle }}">
+<meta property="og:description" content="{{ $seoDescription }}">
+<meta property="og:url" content="{{ url('/') }}">
+<meta property="og:image" content="{{ asset('images/og-image.png') }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Undek — Design. Build. Grow.">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ $seoTitle }}">
+<meta name="twitter:description" content="{{ $seoDescription }}">
+<meta name="twitter:image" content="{{ asset('images/og-image.png') }}">
+
+<script type="application/ld+json">
+{!! json_encode([
+    '@context' => 'https://schema.org',
+    '@type' => 'ProfessionalService',
+    'name' => 'Undek',
+    'url' => url('/'),
+    'logo' => asset('images/logo-512.png'),
+    'image' => asset('images/og-image.png'),
+    'description' => $seoDescription,
+    'email' => 'hello@undek.com',
+    'sameAs' => [
+        'https://www.facebook.com/profile.php?id=100064091621113',
+        'https://www.instagram.com/undekofficial/',
+        'https://www.youtube.com/@undek.official',
+        'https://www.linkedin.com/company/144573084/',
+    ],
+    'hasOfferCatalog' => [
+        '@type' => 'OfferCatalog',
+        'name' => 'Services',
+        'itemListElement' => $services->map(fn ($service) => [
+            '@type' => 'Offer',
+            'itemOffered' => ['@type' => 'Service', 'name' => $service->name, 'description' => $service->description],
+        ])->values(),
+    ],
+], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_PRETTY_PRINT) !!}
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 
@@ -420,7 +470,7 @@ body::after {
     <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:24px;margin-bottom:56px">
       <div data-reveal="0" style="transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1)">
         <div style="font-family:'JetBrains Mono';font-size:12px;letter-spacing:.18em;color:#7c5cff;margin-bottom:16px">// WHAT WE DO</div>
-        <h2 style="font-family:'Space Grotesk';font-weight:700;font-size:clamp(34px,5vw,60px);line-height:1;letter-spacing:-.03em;margin:0;max-width:16ch">Five services. One accountable team.</h2>
+        <h2 style="font-family:'Space Grotesk';font-weight:700;font-size:clamp(34px,5vw,60px);line-height:1;letter-spacing:-.03em;margin:0;max-width:16ch">Every service. One accountable team.</h2>
       </div>
       <p data-reveal="120" style="transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1);max-width:34ch;color:#9b9bb0;font-size:16px;line-height:1.6;margin:0">Every service is modular — mix what you need today, add more as you grow. New offerings can be plugged in anytime.</p>
     </div>
@@ -639,8 +689,8 @@ body::after {
       <button id="chatbot-close" aria-label="Close chat" style="background:none;border:none;color:#9b9bb0;font-size:20px;line-height:1;cursor:pointer;padding:4px">&times;</button>
     </div>
     <div id="chatbot-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px"></div>
-    <form id="chatbot-form" style="display:flex;gap:8px;padding:12px;border-top:1px solid rgba(255,255,255,.08)">
-      <input id="chatbot-input" type="text" autocomplete="off" placeholder="Ask about services, pricing…" style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:10px 16px;color:#f5f5fa;font-size:14px;outline:none">
+    <form id="chatbot-form" aria-label="Chat with the undek assistant" style="display:flex;gap:8px;padding:12px;border-top:1px solid rgba(255,255,255,.08)">
+      <input id="chatbot-input" type="text" autocomplete="off" aria-label="Your message" placeholder="Ask about services, pricing…" style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:10px 16px;color:#f5f5fa;font-size:14px;outline:none">
       <button type="submit" aria-label="Send message" style="width:40px;height:40px;border-radius:50%;border:none;background:linear-gradient(120deg,#7c5cff,#22d3ee);color:#08080c;font-weight:700;cursor:pointer;flex-shrink:0">→</button>
     </form>
   </div>

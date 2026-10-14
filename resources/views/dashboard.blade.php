@@ -21,7 +21,7 @@
             },
             init() {
                 this.refresh();
-                setInterval(() => this.refresh(), 5000);
+                pollWhileVisible(() => this.refresh(), 60000);
             },
         }"
     >
@@ -30,7 +30,7 @@
             <div class="flex items-center justify-between">
                 <p class="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 font-jetbrains">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-400" style="box-shadow:0 0 6px #34e0a1"></span>
-                    LIVE &middot; refreshes every 5s &middot; server time
+                    LIVE &middot; refreshes every minute &middot; server time
                     <span class="text-gray-700 dark:text-gray-300" x-text="stats.server_time ?? '—'"></span>
                 </p>
                 <p x-show="error" x-cloak class="text-sm text-red-500 dark:text-red-400">Couldn't refresh stats — retrying…</p>

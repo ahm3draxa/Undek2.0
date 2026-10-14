@@ -36,7 +36,7 @@
         },
         init() {
             this.refresh();
-            setInterval(() => this.refresh(), 15000);
+            pollWhileVisible(() => this.refresh(), 60000);
         },
     }"
     @click.outside="open = false"

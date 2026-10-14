@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Http\Controllers\HomeController;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Cache;
 
 class Service extends Model
 {
@@ -28,6 +30,13 @@ class Service extends Model
             'intake_fields' => 'array',
             'is_active' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // The landing page caches the service catalog — drop it so edits show immediately.
+        static::saved(fn () => Cache::forget(HomeController::CACHE_KEY));
+        static::deleted(fn () => Cache::forget(HomeController::CACHE_KEY));
     }
 
     public function creator(): BelongsTo
