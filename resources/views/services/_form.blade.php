@@ -29,8 +29,20 @@
 </div>
 
 <div>
+    <x-input-label for="department_id" value="Delivered by team" />
+    <select id="department_id" name="department_id" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 shadow-sm">
+        <option value="">Choose a team…</option>
+        @foreach ($departments as $department)
+            <option value="{{ $department->id }}" @selected((string) old('department_id', $service->department_id ?? '') === (string) $department->id)>{{ $department->name }}</option>
+        @endforeach
+    </select>
+    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">When suggesting a project lead or team, people in this team are listed first.</p>
+    <x-input-error :messages="$errors->get('department_id')" class="mt-2" />
+</div>
+
+<div>
     <x-input-label value="Required skills" />
-    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Only employees with at least one of these skills will show up when assigning a specialist or expert to this service.</p>
+    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">People with at least one of these skills are suggested first when assigning work for this service — from any team.</p>
     @if ($skills->isEmpty())
         <p class="text-sm text-gray-400">No skills defined yet — <a href="{{ route('skills.index') }}" class="text-cyan-600 dark:text-cyan-400 hover:underline">add some first</a>.</p>
     @else

@@ -6,6 +6,7 @@
 
     <form method="POST" action="{{ route('register') }}" class="space-y-5">
         @csrf
+        <x-honeypot />
 
         <!-- Name -->
         <div>

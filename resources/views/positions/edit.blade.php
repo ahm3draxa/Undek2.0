@@ -20,8 +20,7 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <x-input-label for="department_id" value="Department" />
-                            <select id="department_id" name="department_id" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 shadow-sm">
-                                <option value="">Company-wide (no department)</option>
+                            <select id="department_id" name="department_id" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 shadow-sm">
                                 @foreach ($departments as $department)
                                     <option value="{{ $department->id }}" @selected(old('department_id', $position->department_id) == $department->id)>{{ $department->name }}</option>
                                 @endforeach
@@ -34,21 +33,10 @@
                         </div>
                     </div>
 
-                    <div>
-                        <x-input-label value="Permissions this position grants" />
-                        <p class="text-xs text-gray-400 mb-2">Changing this immediately updates the effective permissions of everyone currently holding this position.</p>
-                        <div class="grid grid-cols-2 gap-x-4 gap-y-2 max-h-64 overflow-y-auto rounded-md border border-gray-200 dark:border-gray-700 p-4">
-                            @php $current = old('permissions', $position->permissions->pluck('name')->all()); @endphp
-                            @foreach ($permissions as $permission)
-                                <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                                    <input type="checkbox" name="permissions[]" value="{{ $permission->name }}"
-                                        @checked(in_array($permission->name, $current))
-                                        class="rounded border-gray-300 dark:border-gray-600 text-indigo-600">
-                                    {{ ucfirst($permission->name) }}
-                                </label>
-                            @endforeach
-                        </div>
-                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 rounded-md bg-gray-50 dark:bg-gray-900/40 px-4 py-3">
+                        A position doesn't grant access by itself. Whoever holds it gets the tools of its department — set those on
+                        <a href="{{ route('roles.index') }}" class="text-cyan-600 dark:text-cyan-400 hover:underline">Roles &amp; Teams</a>.
+                    </p>
 
                     <div>
                         <x-input-label value="Skills expected of this position" />

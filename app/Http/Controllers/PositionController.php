@@ -9,8 +9,12 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
-use Spatie\Permission\Models\Permission;
 
+/**
+ * Job titles and their seniority within a team. A position grants nothing by
+ * itself — the team (department) it belongs to decides the tools its holders
+ * get, managed on the Roles & Teams screen.
+ */
 class PositionController extends Controller
 {
     public function index(): View
@@ -26,20 +30,17 @@ class PositionController extends Controller
     public function create(): View
     {
         $departments = Department::orderBy('name')->get();
-        $permissions = Permission::orderBy('name')->get();
         $skills = Skill::with('category')->orderBy('name')->get()->groupBy(fn ($skill) => $skill->category->name ?? 'Other');
 
-        return view('positions.create', compact('departments', 'permissions', 'skills'));
+        return view('positions.create', compact('departments', 'skills'));
     }
 
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:positions,name'],
-            'department_id' => ['nullable', 'exists:departments,id'],
+            'department_id' => ['required', 'exists:departments,id'],
             'rank' => ['required', 'integer', 'min:0', 'max:100'],
-            'permissions' => ['array'],
-            'permissions.*' => ['string', 'exists:permissions,name'],
             'skills' => ['array'],
             'skills.*' => ['integer', 'exists:skills,id'],
         ]);
@@ -47,11 +48,10 @@ class PositionController extends Controller
         $position = Position::create([
             'name' => $data['name'],
             'slug' => Str::slug($data['name']),
-            'department_id' => $data['department_id'] ?? null,
+            'department_id' => $data['department_id'],
             'rank' => $data['rank'],
         ]);
 
-        $position->syncPermissions($data['permissions'] ?? []);
         $position->skills()->sync($data['skills'] ?? []);
 
         return redirect()->route('positions.index')->with('status', 'Position created.');
@@ -60,41 +60,44 @@ class PositionController extends Controller
     public function edit(Position $position): View
     {
         $departments = Department::orderBy('name')->get();
-        $permissions = Permission::orderBy('name')->get();
         $skills = Skill::with('category')->orderBy('name')->get()->groupBy(fn ($skill) => $skill->category->name ?? 'Other');
-        $position->load('permissions', 'skills');
+        $position->load('skills');
 
-        return view('positions.edit', compact('position', 'departments', 'permissions', 'skills'));
+        return view('positions.edit', compact('position', 'departments', 'skills'));
     }
 
     public function update(Request $request, Position $position): RedirectResponse
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255', 'unique:positions,name,'.$position->id],
-            'department_id' => ['nullable', 'exists:departments,id'],
+            'department_id' => ['required', 'exists:departments,id'],
             'rank' => ['required', 'integer', 'min:0', 'max:100'],
-            'permissions' => ['array'],
-            'permissions.*' => ['string', 'exists:permissions,name'],
             'skills' => ['array'],
             'skills.*' => ['integer', 'exists:skills,id'],
         ]);
 
+        $movedTeam = (int) $position->department_id !== (int) $data['department_id'];
+
         $position->update([
             'name' => $data['name'],
             'slug' => Str::slug($data['name']),
-            'department_id' => $data['department_id'] ?? null,
+            'department_id' => $data['department_id'],
             'rank' => $data['rank'],
         ]);
 
-        $position->syncPermissions($data['permissions'] ?? []);
         $position->skills()->sync($data['skills'] ?? []);
 
-        // Permission set changed — everyone currently holding this position needs their effective permissions recomputed.
-        foreach ($position->employeeProfiles()->with('user')->get() as $profile) {
-            $profile->user?->syncPermissionsFromPositions();
-        }
-        foreach ($position->users as $user) {
-            $user->syncPermissionsFromPositions();
+        // Moving a position to another team moves everyone holding it, and
+        // swaps the team tools they get.
+        if ($movedTeam) {
+            $position->employeeProfiles()->update(['department_id' => $data['department_id']]);
+
+            foreach ($position->employeeProfiles()->with('user')->get() as $profile) {
+                $profile->user?->syncTeamPermissions();
+            }
+            foreach ($position->users as $user) {
+                $user->syncTeamPermissions();
+            }
         }
 
         return redirect()->route('positions.index')->with('status', 'Position updated.');

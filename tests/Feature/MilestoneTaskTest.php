@@ -44,10 +44,10 @@ class MilestoneTaskTest extends TestCase
         Storage::fake('local');
 
         $this->client = $this->userWithRole('client');
-        $this->lead = $this->userWithRole('expert');
-        $this->supervisor = $this->userWithRole('employee');
-        $this->intern = $this->userWithRole('intern');
-        $this->otherIntern = $this->userWithRole('intern');
+        $this->lead = $this->userWithRole('staff');
+        $this->supervisor = $this->userWithRole('staff');
+        $this->intern = $this->userWithRole('staff');
+        $this->otherIntern = $this->userWithRole('staff');
 
         // The intern reports to the supervisor; the other intern reports to nobody here.
         EmployeeProfile::create(['user_id' => $this->supervisor->id]);

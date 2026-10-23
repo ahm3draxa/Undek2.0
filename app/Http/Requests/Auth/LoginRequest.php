@@ -59,6 +59,14 @@ class LoginRequest extends FormRequest
 
         $user = Auth::getProvider()->retrieveByCredentials($credentials);
 
+        // Checked only after the password is proven, so this message can't be
+        // used to discover which emails belong to deactivated accounts.
+        if (! $user->is_active) {
+            throw ValidationException::withMessages([
+                'email' => 'This account has been deactivated. Contact Undek if you think this is a mistake.',
+            ]);
+        }
+
         if ($user->hasEnabledTwoFactorAuthentication()) {
             $this->session()->regenerate();
             $this->session()->put('login.2fa.id', $user->id);

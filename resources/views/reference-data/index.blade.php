@@ -11,8 +11,9 @@
                 These are the shared dropdown lists used across employee profiles and the
                 <a href="{{ route('skills.index') }}" class="text-cyan-600 dark:text-cyan-400 hover:underline">skill catalog</a> —
                 add to them here so everyone picks from the same options instead of typing free text.
-                Positions now have their own page — department, rank, and permissions live at
-                <a href="{{ route('positions.index') }}" class="text-cyan-600 dark:text-cyan-400 hover:underline">Positions</a>.
+                Job titles and seniority live on
+                <a href="{{ route('positions.index') }}" class="text-cyan-600 dark:text-cyan-400 hover:underline">Positions</a>;
+                each team's tools are set on <a href="{{ route('roles.index') }}" class="text-cyan-600 dark:text-cyan-400 hover:underline">Roles &amp; Teams</a>.
             </p>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">

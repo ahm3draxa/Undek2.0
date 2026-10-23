@@ -26,30 +26,48 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                         @foreach ($users as $user)
+                            @php
+                                $canManage = auth()->user()->canManageAccountOf($user);
+                                $canChangeRole = $canManage || ($user->id === auth()->id() && auth()->user()->isOwner());
+                                $currentRole = $user->roles->first()?->name;
+                            @endphp
                             <tr class="text-gray-700 dark:text-gray-200">
-                                <td class="px-6 py-4 font-medium">{{ $user->name }}</td>
                                 <td class="px-6 py-4">
-                                    <details class="group">
-                                        <summary class="cursor-pointer list-none flex items-center gap-1.5 marker:content-none">
-                                            <span>{{ $user->email }}</span>
-                                            <x-icon name="pencil" class="w-3.5 h-3.5 text-gray-300 dark:text-gray-600 group-hover:text-cyan-500" />
-                                        </summary>
-                                        <form method="POST" action="{{ route('users.update-email', $user) }}" class="mt-2 flex items-center gap-2" onsubmit="return confirm('Change {{ $user->name }}\'s login email? They\'ll need to re-verify it.')">
-                                            @csrf @method('PATCH')
-                                            <input type="email" name="email" value="{{ $user->email }}" required class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 text-sm py-1">
-                                            <button class="text-xs font-medium text-cyan-600 dark:text-cyan-400 hover:underline">Save</button>
-                                        </form>
-                                    </details>
+                                    <div class="font-medium">{{ $user->name }}</div>
+                                    @if ($user->employeeProfile?->position)
+                                        <div class="text-xs text-gray-400">{{ $user->employeeProfile->position->name }}</div>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4">
-                                    <form method="POST" action="{{ route('users.role', $user) }}">
-                                        @csrf @method('PATCH')
-                                        <select name="role" onchange="this.form.submit()" class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 text-sm">
-                                            @foreach ($roles as $role)
-                                                <option value="{{ $role->name }}" @selected($user->hasRole($role->name))>{{ $role->name === 'ceo' ? 'CEO' : \Illuminate\Support\Str::of($role->name)->replace('_', ' ')->title() }}</option>
-                                            @endforeach
-                                        </select>
-                                    </form>
+                                    @if ($canManage)
+                                        <details class="group">
+                                            <summary class="cursor-pointer list-none flex items-center gap-1.5 marker:content-none">
+                                                <span>{{ $user->email }}</span>
+                                                <x-icon name="pencil" class="w-3.5 h-3.5 text-gray-300 dark:text-gray-600 group-hover:text-cyan-500" />
+                                            </summary>
+                                            <form method="POST" action="{{ route('users.update-email', $user) }}" class="mt-2 flex items-center gap-2" onsubmit="return confirm('Change {{ $user->name }}\'s login email? They\'ll need to re-verify it.')">
+                                                @csrf @method('PATCH')
+                                                <input type="email" name="email" value="{{ $user->email }}" required class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 text-sm py-1">
+                                                <button class="text-xs font-medium text-cyan-600 dark:text-cyan-400 hover:underline">Save</button>
+                                            </form>
+                                        </details>
+                                    @else
+                                        {{ $user->email }}
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4">
+                                    @if ($canChangeRole)
+                                        <form method="POST" action="{{ route('users.role', $user) }}">
+                                            @csrf @method('PATCH')
+                                            <select name="role" onchange="this.form.submit()" class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 text-sm">
+                                                @foreach ($assignableRoles as $role)
+                                                    <option value="{{ $role }}" @selected($currentRole === $role)>{{ \App\Support\Organization::roleLabel($role) }}</option>
+                                                @endforeach
+                                            </select>
+                                        </form>
+                                    @else
+                                        <x-role-label :name="$currentRole" />
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4">
                                     @if ($user->is_active)
@@ -59,33 +77,37 @@
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 text-right">
-                                    <div class="flex items-center justify-end gap-4">
-                                        <form method="POST" action="{{ route('users.reset-password', $user) }}" onsubmit="return confirm('Reset {{ $user->name }}\'s password? Their current password stops working immediately.')">
-                                            @csrf
-                                            <button class="inline-flex items-center gap-1 text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 hover:underline">
-                                                <x-icon name="key" class="w-4 h-4" />
-                                                Reset password
-                                            </button>
-                                        </form>
-                                        @if ($user->hasEnabledTwoFactorAuthentication())
-                                            <form method="POST" action="{{ route('users.disable-2fa', $user) }}" onsubmit="return confirm('Disable two-factor authentication for {{ $user->name }}? Only do this if they\'re locked out and have no recovery codes left.')">
+                                    @if ($canManage)
+                                        <div class="flex items-center justify-end gap-4">
+                                            <form method="POST" action="{{ route('users.reset-password', $user) }}" onsubmit="return confirm('Reset {{ $user->name }}\'s password? Their current password stops working immediately and they are signed out.')">
                                                 @csrf
-                                                <button class="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 hover:underline">
-                                                    <x-icon name="shield-check" class="w-4 h-4" />
-                                                    Disable 2FA
-                                                </button>
-                                            </form>
-                                        @endif
-                                        @unless ($user->id === auth()->id())
-                                            <form method="POST" action="{{ route('users.toggle-active', $user) }}">
-                                                @csrf @method('PATCH')
                                                 <button class="inline-flex items-center gap-1 text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 hover:underline">
-                                                    <x-icon :name="$user->is_active ? 'x-circle' : 'check-circle'" class="w-4 h-4" />
-                                                    {{ $user->is_active ? 'Deactivate' : 'Reactivate' }}
+                                                    <x-icon name="key" class="w-4 h-4" />
+                                                    Reset password
                                                 </button>
                                             </form>
-                                        @endunless
-                                    </div>
+                                            @if ($user->hasEnabledTwoFactorAuthentication())
+                                                <form method="POST" action="{{ route('users.disable-2fa', $user) }}" onsubmit="return confirm('Disable two-factor authentication for {{ $user->name }}? Only do this if they\'re locked out and have no recovery codes left.')">
+                                                    @csrf
+                                                    <button class="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 hover:underline">
+                                                        <x-icon name="shield-check" class="w-4 h-4" />
+                                                        Disable 2FA
+                                                    </button>
+                                                </form>
+                                            @endif
+                                            @unless ($user->id === auth()->id())
+                                                <form method="POST" action="{{ route('users.toggle-active', $user) }}">
+                                                    @csrf @method('PATCH')
+                                                    <button class="inline-flex items-center gap-1 text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 hover:underline">
+                                                        <x-icon :name="$user->is_active ? 'x-circle' : 'check-circle'" class="w-4 h-4" />
+                                                        {{ $user->is_active ? 'Deactivate' : 'Reactivate' }}
+                                                    </button>
+                                                </form>
+                                            @endunless
+                                        </div>
+                                    @elseif ($user->id !== auth()->id())
+                                        <span class="text-xs text-gray-400">Only an owner can change this account</span>
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach

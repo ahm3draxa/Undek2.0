@@ -10,7 +10,7 @@
             <span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-jetbrains font-semibold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ $position->rank }}</span>
             <div>
                 <div class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ $position->name }}</div>
-                <div class="text-xs text-gray-400">{{ $position->permissions->count() }} {{ Str::plural('permission', $position->permissions->count()) }}</div>
+                <div class="text-xs text-gray-400">{{ $position->skills->count() }} expected {{ Str::plural('skill', $position->skills->count()) }}</div>
             </div>
         </div>
         <div class="flex items-center gap-3">

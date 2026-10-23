@@ -43,7 +43,7 @@ class ReferenceDataController extends Controller
         $record = $model::findOrFail($id);
 
         $inUse = match ($model) {
-            Department::class => $record->employeeProfiles()->exists(),
+            Department::class => $record->employeeProfiles()->exists() || $record->positions()->exists() || $record->services()->exists(),
             SkillCategory::class => $record->skills()->exists(),
             default => false,
         };

@@ -19,6 +19,7 @@ class Service extends Model
         'slug',
         'description',
         'icon',
+        'department_id',
         'intake_fields',
         'is_active',
         'created_by',
@@ -35,13 +36,27 @@ class Service extends Model
     protected static function booted(): void
     {
         // The landing page caches the service catalog — drop it so edits show immediately.
-        static::saved(fn () => Cache::forget(HomeController::CACHE_KEY));
-        static::deleted(fn () => Cache::forget(HomeController::CACHE_KEY));
+        // Block bodies on purpose: Cache::forget() can return false, which
+        // would stop any listener registered after this one.
+        static::saved(function () {
+            Cache::forget(HomeController::CACHE_KEY);
+        });
+        static::deleted(function () {
+            Cache::forget(HomeController::CACHE_KEY);
+        });
     }
 
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * The team that delivers this service.
+     */
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
     }
 
     public function quoteRequests(): HasMany

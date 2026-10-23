@@ -34,7 +34,7 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 
 // Quote intake — open to guests and authenticated clients alike.
 Route::get('/quote', [QuoteRequestController::class, 'create'])->name('quote-requests.create');
-Route::post('/quote', [QuoteRequestController::class, 'store'])->name('quote-requests.store');
+Route::post('/quote', [QuoteRequestController::class, 'store'])->middleware('throttle:public-forms')->name('quote-requests.store');
 Route::get('/quote/thank-you', [QuoteRequestController::class, 'thanks'])->name('quote-requests.thanks');
 
 Route::get('/privacy-policy', [HomeController::class, 'privacyPolicy'])->name('privacy-policy');
@@ -90,6 +90,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Projects — viewable by client/lead/team members, listed per role inside the controller.
     Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
+
+    // Manual set-up (phone/WhatsApp clients, repeat work, internal projects).
+    // Declared before /projects/{project} so "create" isn't read as an id.
+    Route::middleware('permission:create projects')->group(function () {
+        Route::get('/projects/create', [ProjectController::class, 'create'])->name('projects.create');
+        Route::post('/projects', [ProjectController::class, 'store'])->name('projects.store');
+    });
     Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
     Route::get('/projects/{project}/messages', [MessageController::class, 'projectIndex'])->name('projects.messages.index');
     Route::post('/projects/{project}/messages', [MessageController::class, 'storeProjectMessage'])->name('projects.messages.store');
@@ -192,7 +199,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // Shared company inboxes (info@ / support@).
-    Route::middleware('permission:view inbox')->group(function () {
+    Route::middleware('can:view any inbox')->group(function () {
         Route::get('/inbox', [InboxController::class, 'index'])->name('inbox.index');
         Route::post('/inbox/refresh', [InboxController::class, 'refresh'])->name('inbox.refresh');
         Route::get('/inbox/{message}', [InboxController::class, 'show'])->name('inbox.show');
@@ -205,8 +212,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Roles & permissions — what each role is allowed to do.
     Route::middleware('permission:manage roles')->group(function () {
         Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
-        Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
         Route::put('/roles/{role}', [RoleController::class, 'update'])->name('roles.update');
+        Route::put('/roles/departments/{department}', [RoleController::class, 'updateDepartment'])->name('roles.departments.update');
         Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy');
     });
 });

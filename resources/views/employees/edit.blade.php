@@ -1,3 +1,4 @@
+@use('App\Support\Organization')
 <x-app-layout>
     <x-slot name="header">
         <x-page-header icon="pencil" :title="__('Edit Profile — :name', ['name' => $employee->name])" />
@@ -12,26 +13,19 @@
                     x-data="{ compensationType: '{{ old('compensation_type', $profile->compensation_type ?? 'fixed_salary') }}' }">
                     @csrf @method('PUT')
 
-                    @can('manage users')
+                    @if (auth()->user()->can('manage users') && (auth()->user()->canManageAccountOf($employee) || (auth()->id() === $employee->id && auth()->user()->isOwner())))
                         <div>
-                            <x-input-label for="role" value="Role" />
+                            <x-input-label for="role" value="Portal access" />
                             <select id="role" name="role" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 shadow-sm">
                                 @php $currentRole = $employee->roles->first()?->name; @endphp
-                                @foreach ([
-                                    'intern' => 'Intern',
-                                    'employee' => 'Employee',
-                                    'specialist' => 'Specialist',
-                                    'expert' => 'Expert',
-                                    'admin' => 'Admin',
-                                    'ceo' => 'CEO',
-                                ] as $value => $label)
-                                    <option value="{{ $value }}" @selected(old('role', $currentRole) === $value)>{{ $label }}</option>
+                                @foreach (array_diff(auth()->user()->assignableRoles(), [Organization::CLIENT]) as $value)
+                                    <option value="{{ $value }}" @selected(old('role', $currentRole) === $value)>{{ Organization::roleLabel($value) }}</option>
                                 @endforeach
                             </select>
-                            <p class="text-xs text-gray-400 mt-1">Ordered as a typical growth path — roles aren't otherwise ranked, each has its own permission set on the <a href="{{ route('roles.index') }}" class="text-cyan-600 dark:text-cyan-400 hover:underline">Roles &amp; Permissions</a> page. Changing this replaces their current role.</p>
+                            <p class="text-xs text-gray-400 mt-1">Staff get their team's tools from their department. Admins also manage people and all work; owners can do everything.</p>
                             <x-input-error :messages="$errors->get('role')" class="mt-2" />
                         </div>
-                    @endcan
+                    @endif
 
                     <div class="rounded-md bg-gray-50 dark:bg-gray-900/40 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 flex items-center justify-between">
                         <span>
@@ -44,7 +38,7 @@
                     <div>
                         <x-input-label for="employment_type" value="Employment type" />
                         <select id="employment_type" name="employment_type" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 shadow-sm">
-                            @foreach (['full_time' => 'Full-time', 'part_time' => 'Part-time', 'contractor' => 'Contractor', 'intern' => 'Intern'] as $value => $label)
+                            @foreach (Organization::EMPLOYMENT_TYPES as $value => $label)
                                 <option value="{{ $value }}" @selected(old('employment_type', $profile->employment_type ?? 'full_time') === $value)>{{ $label }}</option>
                             @endforeach
                         </select>
@@ -107,7 +101,7 @@
                         <select id="manager_id" name="manager_id" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 shadow-sm">
                             <option value="">No manager</option>
                             @foreach ($managers as $manager)
-                                <option value="{{ $manager->id }}" @selected((string) old('manager_id', $profile->manager_id ?? '') === (string) $manager->id)>{{ $manager->name }} ({{ $manager->employeeProfile->position->name ?? ($manager->roles->first()?->name === 'ceo' ? 'CEO' : \Illuminate\Support\Str::of($manager->roles->first()?->name ?? '')->replace('_', ' ')->title()) }})</option>
+                                <option value="{{ $manager->id }}" @selected((string) old('manager_id', $profile->manager_id ?? '') === (string) $manager->id)>{{ $manager->name }} ({{ $manager->title() }})</option>
                             @endforeach
                         </select>
                         <x-input-error :messages="$errors->get('manager_id')" class="mt-2" />

@@ -22,7 +22,7 @@ class MarketingController extends Controller implements HasMiddleware
     public static function middleware(): array
     {
         return [
-            new Middleware('can:manage-marketing', except: ['unsubscribe', 'confirmUnsubscribe']),
+            new Middleware('permission:send marketing', except: ['unsubscribe', 'confirmUnsubscribe']),
         ];
     }
 

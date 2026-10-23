@@ -9,17 +9,17 @@ use App\Models\Position;
 use App\Models\ProjectFeedback;
 use App\Models\Skill;
 use App\Models\User;
+use App\Support\Organization;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class EmployeeController extends Controller
 {
-    private const ONBOARD_ROLES = ['ceo', 'admin', 'specialist', 'expert', 'employee', 'intern'];
-
     public function index(): View
     {
         $employees = User::with(['employeeProfile.manager', 'employeeProfile.department', 'employeeProfile.position', 'roles'])
@@ -45,7 +45,7 @@ class EmployeeController extends Controller
 
         return view('employees.create', [
             'managers' => $managers,
-            'roles' => self::ONBOARD_ROLES,
+            'roles' => $this->staffRolesFor(request()->user()),
             'departments' => $departments,
             'positions' => $positions,
         ]);
@@ -60,7 +60,7 @@ class EmployeeController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'role' => ['required', 'in:'.implode(',', self::ONBOARD_ROLES)],
+            'role' => ['required', Rule::in($this->staffRolesFor($request->user()))],
             'position_id' => ['nullable', 'exists:positions,id'],
             'department_id' => ['nullable', 'exists:departments,id'],
             'employment_type' => ['required', 'in:full_time,part_time,contractor,intern'],
@@ -83,8 +83,11 @@ class EmployeeController extends Controller
             'email' => $data['email'],
             'password' => Hash::make($temporaryPassword),
             'is_active' => true,
-            'email_verified_at' => now(),
         ]);
+
+        // Not mass-assignable on purpose, so set explicitly: the business added
+        // this address itself, so the new hire isn't held at "verify your email".
+        $employee->forceFill(['email_verified_at' => now()])->save();
 
         $employee->assignRole($data['role']);
 
@@ -105,7 +108,7 @@ class EmployeeController extends Controller
             'is_public' => $request->boolean('is_public'),
         ]);
 
-        $employee->syncPermissionsFromPositions();
+        $employee->syncTeamPermissions();
 
         event(new Registered($employee));
 
@@ -166,7 +169,7 @@ class EmployeeController extends Controller
     public function update(Request $request, User $employee): RedirectResponse
     {
         $data = $request->validate([
-            'role' => ['nullable', 'in:'.implode(',', self::ONBOARD_ROLES)],
+            'role' => ['nullable', Rule::in($this->staffRolesFor($request->user()))],
             'employment_type' => ['required', 'in:full_time,part_time,contractor,intern'],
             'hire_date' => ['nullable', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:hire_date'],
@@ -186,9 +189,16 @@ class EmployeeController extends Controller
         $role = $data['role'] ?? null;
         unset($data['role']);
 
-        if ($role && $request->user()->can('manage users') && ! $employee->hasRole($role)) {
-            if ($employee->id === $request->user()->id && $role !== 'ceo' && $employee->hasRole('ceo')) {
-                abort_if(User::role('ceo')->count() <= 1, 422, 'At least one CEO account must remain.');
+        if ($role && ! $employee->hasRole($role)) {
+            $actor = $request->user();
+            abort_unless(
+                $actor->can('manage users') && ($actor->canManageAccountOf($employee) || ($actor->id === $employee->id && $actor->isOwner())),
+                403,
+                'Only an owner can change an owner or admin account.'
+            );
+
+            if ($employee->isOwner()) {
+                abort_if(User::role(Organization::OWNER)->count() <= 1, 422, 'At least one owner account must remain.');
             }
 
             $employee->syncRoles([$role]);
@@ -244,7 +254,7 @@ class EmployeeController extends Controller
             'base_salary' => $data['new_salary'] ?? $profile->base_salary,
         ]);
 
-        $employee->syncPermissionsFromPositions();
+        $employee->syncTeamPermissions();
 
         return redirect()->route('employees.show', $employee)->with('status', ucfirst($direction).' recorded.');
     }
@@ -287,7 +297,7 @@ class EmployeeController extends Controller
             'base_salary' => $data['new_salary'] ?? $profile->base_salary,
         ]);
 
-        $employee->syncPermissionsFromPositions();
+        $employee->syncTeamPermissions();
 
         return redirect()->route('employees.show', $employee)->with('status', 'Transferred.');
     }
@@ -305,7 +315,7 @@ class EmployeeController extends Controller
         abort_if($employee->employeeProfile?->position_id === (int) $data['position_id'], 422, 'That is already their primary position.');
 
         $employee->secondaryPositions()->syncWithoutDetaching([$data['position_id'] => ['assigned_at' => now()]]);
-        $employee->syncPermissionsFromPositions();
+        $employee->syncTeamPermissions();
 
         return redirect()->route('employees.show', $employee)->with('status', 'Secondary position added.');
     }
@@ -313,7 +323,7 @@ class EmployeeController extends Controller
     public function removeSecondaryPosition(User $employee, Position $position): RedirectResponse
     {
         $employee->secondaryPositions()->detach($position->id);
-        $employee->syncPermissionsFromPositions();
+        $employee->syncTeamPermissions();
 
         return redirect()->route('employees.show', $employee)->with('status', 'Secondary position removed.');
     }
@@ -342,7 +352,7 @@ class EmployeeController extends Controller
     {
         $data = $request->validate([
             'skill_id' => ['required', 'exists:skills,id'],
-            'level' => ['required', 'in:beginner,intermediate,expert'],
+            'level' => ['required', Rule::in(array_keys(Organization::SKILL_LEVELS))],
         ]);
 
         $employee->skills()->syncWithoutDetaching([
@@ -359,4 +369,15 @@ class EmployeeController extends Controller
         return redirect()->route('employees.show', $employee)->with('status', 'Skill removed.');
     }
 
+
+    /**
+     * Roles an employee can be given by this person — never 'client', and
+     * owner/admin only by an owner.
+     *
+     * @return array<int, string>
+     */
+    private function staffRolesFor(User $actor): array
+    {
+        return array_values(array_diff($actor->assignableRoles(), [Organization::CLIENT]));
+    }
 }

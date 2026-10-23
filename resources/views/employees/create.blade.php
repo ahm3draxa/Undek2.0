@@ -1,3 +1,4 @@
+@use('App\Support\Organization')
 <x-app-layout>
     <x-slot name="header">
         <x-page-header icon="plus" title="Add Employee" subtitle="Onboard a new hire — role, position, and starting compensation." />
@@ -28,7 +29,7 @@
                         <x-input-label for="role" value="Role" />
                         <select id="role" name="role" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 shadow-sm">
                             @foreach ($roles as $role)
-                                <option value="{{ $role }}" @selected(old('role') === $role)>{{ $role === 'ceo' ? 'CEO' : \Illuminate\Support\Str::of($role)->replace('_', ' ')->title() }}</option>
+                                <option value="{{ $role }}" @selected(old('role') === $role)>{{ Organization::roleLabel($role) }}</option>
                             @endforeach
                         </select>
                         <x-input-error :messages="$errors->get('role')" class="mt-2" />
@@ -65,7 +66,7 @@
                         <div>
                             <x-input-label for="employment_type" value="Employment type" />
                             <select id="employment_type" name="employment_type" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 shadow-sm">
-                                @foreach (['full_time' => 'Full-time', 'part_time' => 'Part-time', 'contractor' => 'Contractor', 'intern' => 'Intern'] as $value => $label)
+                                @foreach (Organization::EMPLOYMENT_TYPES as $value => $label)
                                     <option value="{{ $value }}" @selected(old('employment_type') === $value)>{{ $label }}</option>
                                 @endforeach
                             </select>
@@ -75,7 +76,7 @@
                             <select id="manager_id" name="manager_id" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 shadow-sm">
                                 <option value="">No manager</option>
                                 @foreach ($managers as $manager)
-                                    <option value="{{ $manager->id }}" @selected((string) old('manager_id') === (string) $manager->id)>{{ $manager->name }} ({{ $manager->employeeProfile->position->name ?? ($manager->roles->first()?->name === 'ceo' ? 'CEO' : \Illuminate\Support\Str::of($manager->roles->first()?->name ?? '')->replace('_', ' ')->title()) }})</option>
+                                    <option value="{{ $manager->id }}" @selected((string) old('manager_id') === (string) $manager->id)>{{ $manager->name }} ({{ $manager->title() }})</option>
                                 @endforeach
                             </select>
                         </div>

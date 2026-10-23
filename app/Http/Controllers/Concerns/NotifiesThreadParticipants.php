@@ -38,7 +38,7 @@ trait NotifiesThreadParticipants
             $parent instanceof QuoteRequest => collect([$parent->client, $parent->assignedSpecialist]),
             $channel === 'team' => collect([$parent->leadExpert])
                 ->concat($parent->teamMembers()->with('user')->get()->pluck('user'))
-                ->concat(User::role(['ceo', 'admin'])->get()),
+                ->concat(User::role(['owner', 'admin'])->get()),
             default => collect([$parent->client, $parent->leadExpert])
                 ->concat($parent->teamMembers()->with('user')->get()->pluck('user')),
         };

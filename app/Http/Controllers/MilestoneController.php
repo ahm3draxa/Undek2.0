@@ -282,7 +282,7 @@ class MilestoneController extends Controller
             || $project->teamMembers()->where('user_id', $user->id)->exists();
 
         abort_unless(
-            $user->hasAnyRole(['ceo', 'admin']) || ($isOnProject && $user->can('manage milestones')),
+            $user->can('manage all work') || ($isOnProject && $user->can('manage milestones') && ! $user->isIntern()),
             403
         );
     }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\NotifiesThreadParticipants;
 use App\Models\Project;
 use App\Models\QuoteRequest;
 use App\Models\User;
+use App\Support\Organization;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -112,28 +113,20 @@ class MessageController extends Controller
     }
 
     /**
-     * A short, human label for whichever role most explains why this person
-     * is in the thread — so a client can tell a CEO/team member apart from
-     * "just another specialist" at a glance.
+     * A short, human label for who this person is — their job title (e.g.
+     * "Co-Founder", "SEO Specialist") so a client can tell who they're
+     * talking to at a glance; clients are simply "Client".
      */
     private function roleLabel(User $sender): string
     {
-        return match (true) {
-            $sender->hasRole('ceo') => 'CEO',
-            $sender->hasRole('admin') => 'Admin',
-            $sender->hasRole('specialist') => 'Specialist',
-            $sender->hasRole('expert') => 'Expert',
-            $sender->hasRole('employee') => 'Employee',
-            $sender->hasRole('intern') => 'Intern',
-            default => 'Client',
-        };
+        return $sender->isStaff() ? $sender->title() : 'Client';
     }
 
     private function roleColor(User $sender): string
     {
         return match (true) {
-            $sender->hasAnyRole(['ceo', 'admin']) => 'violet',
-            $sender->hasAnyRole(['specialist', 'expert', 'employee', 'intern']) => 'cyan',
+            $sender->hasAnyRole([Organization::OWNER, Organization::ADMIN]) => 'violet',
+            $sender->isStaff() => 'cyan',
             default => 'amber',
         };
     }
@@ -142,7 +135,7 @@ class MessageController extends Controller
     {
         $user = $request->user();
 
-        $allowed = $user->hasAnyRole(['ceo', 'admin'])
+        $allowed = $user->can('manage all work')
             || $quoteRequest->client_id === $user->id
             || $quoteRequest->assigned_to === $user->id;
 
@@ -153,12 +146,7 @@ class MessageController extends Controller
     {
         $user = $request->user();
 
-        $allowed = $user->hasAnyRole(['ceo', 'admin'])
-            || $project->client_id === $user->id
-            || $project->lead_expert_id === $user->id
-            || $project->teamMembers()->where('user_id', $user->id)->exists();
-
-        abort_unless($allowed, 403);
+        abort_unless($project->client_id === $user->id || $project->hasInternalAccess($user), 403);
     }
 
     /**
@@ -168,10 +156,6 @@ class MessageController extends Controller
     {
         $user = $request->user();
 
-        $allowed = $user->hasAnyRole(['ceo', 'admin'])
-            || $project->lead_expert_id === $user->id
-            || $project->teamMembers()->where('user_id', $user->id)->exists();
-
-        abort_unless($allowed, 403);
+        abort_unless($project->hasInternalAccess($user), 403);
     }
 }

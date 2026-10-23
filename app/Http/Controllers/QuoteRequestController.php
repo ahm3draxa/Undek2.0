@@ -29,9 +29,9 @@ class QuoteRequestController extends Controller
 
         $query = QuoteRequest::with(['service', 'client', 'assignedSpecialist'])->latest();
 
-        if ($user->hasAnyRole(['ceo', 'admin'])) {
+        if ($user->can('manage all work')) {
             // Full visibility — no filter.
-        } elseif ($user->can('view quote requests')) {
+        } elseif ($user->can('send quotation')) {
             $query->where('assigned_to', $user->id);
         } else {
             $query->where('client_id', $user->id);
@@ -91,6 +91,7 @@ class QuoteRequestController extends Controller
             'skills' => ['array'],
             'skills.*' => ['exists:skills,id'],
             ...SafeUpload::rulesFor('attachments', 'quote_reference'),
+            'website' => ['prohibited'], // honeypot, see components/honeypot
         ]);
 
         $quoteRequest = QuoteRequest::create([
@@ -135,8 +136,8 @@ class QuoteRequestController extends Controller
 
         $quoteRequest->load(['service.skills', 'client', 'assignedSpecialist', 'attachments', 'quotations.proposedBy', 'quotations.specialist', 'quotations.project', 'project', 'skills']);
 
-        [$candidateSpecialists, $skillMatched, $specialistEscalatedTo] = $this->candidatesForQuoteRequest(['specialist'], $quoteRequest);
-        [$candidateExperts, $expertSkillMatched, $expertEscalatedTo] = $this->candidatesForQuoteRequest(['expert', 'employee'], $quoteRequest);
+        [$candidateSpecialists, $skillMatched, $specialistEscalatedTo] = $this->candidatesForQuoteRequest('quote', $quoteRequest);
+        [$candidateExperts, $expertSkillMatched, $expertEscalatedTo] = $this->candidatesForQuoteRequest('lead', $quoteRequest);
 
         return view('quote-requests.show', compact(
             'quoteRequest', 'candidateSpecialists', 'skillMatched', 'specialistEscalatedTo',
@@ -166,7 +167,7 @@ class QuoteRequestController extends Controller
         ]);
 
         $specialist = User::findOrFail($data['assigned_to']);
-        abort_unless($specialist->hasAnyRole(['specialist', 'ceo', 'admin']), 422, 'Selected user is not a specialist.');
+        abort_unless($specialist->is_active && ($specialist->can('send quotation') || $specialist->can('manage all work')), 422, "That person can't price quote requests.");
 
         $quoteRequest->update(['assigned_to' => $specialist->id]);
 
@@ -181,7 +182,7 @@ class QuoteRequestController extends Controller
             return;
         }
 
-        if ($user->hasAnyRole(['ceo', 'admin'])) {
+        if ($user->can('manage all work')) {
             return;
         }
 

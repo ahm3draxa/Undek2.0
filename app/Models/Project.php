@@ -33,18 +33,18 @@ class Project extends Model
     }
 
     /**
-     * Lead, team member, or CEO/admin — everyone who sees internal detail
+     * Lead, team member, or anyone who manages all work — everyone who sees internal detail
      * (team channel, task assignments, submitted work). Never the client.
      */
     public function hasInternalAccess(User $user): bool
     {
-        return $user->hasAnyRole(['ceo', 'admin'])
+        return $user->can('manage all work')
             || $this->lead_expert_id === $user->id
             || $this->teamMembers()->where('user_id', $user->id)->exists();
     }
 
     /**
-     * People this user may hand a milestone to on this project. CEO/admin and
+     * People this user may hand a milestone to on this project. Owners/admins and
      * the lead can delegate to anyone on the project; anyone else on the
      * project only to the people they directly supervise (e.g. their own
      * interns), per the org chart's manager field.
@@ -58,7 +58,7 @@ class Project extends Model
             ->unique('id')
             ->values();
 
-        if ($user->hasAnyRole(['ceo', 'admin']) || $this->lead_expert_id === $user->id) {
+        if ($user->can('manage all work') || $this->lead_expert_id === $user->id) {
             return $people;
         }
 

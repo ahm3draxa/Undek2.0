@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use PragmaRX\Google2FA\Google2FA;
@@ -44,6 +45,26 @@ class TwoFactorChallengeController extends Controller
         ]);
 
         $user = User::findOrFail($userId);
+
+        // A 6-digit code is guessable without a limit. Five wrong tries and the
+        // half-finished login is thrown away — the password has to be proven
+        // again (which has its own limit) before more codes can be tried.
+        $throttleKey = 'two-factor:'.$user->id;
+
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $request->session()->forget(['login.2fa.id', 'login.2fa.remember']);
+
+            return redirect()->route('login')->withErrors([
+                'email' => 'Too many incorrect codes. Sign in again in '.ceil(RateLimiter::availableIn($throttleKey) / 60).' minute(s).',
+            ]);
+        }
+
+        if (! $user->is_active) {
+            $request->session()->forget(['login.2fa.id', 'login.2fa.remember']);
+
+            return redirect()->route('login')->withErrors(['email' => 'This account has been deactivated. Contact Undek if you think this is a mistake.']);
+        }
+
         $valid = false;
 
         if (! empty($data['code'])) {
@@ -58,10 +79,14 @@ class TwoFactorChallengeController extends Controller
         }
 
         if (! $valid) {
+            RateLimiter::hit($throttleKey, 15 * 60);
+
             throw ValidationException::withMessages([
                 'code' => 'The provided two-factor code was invalid.',
             ]);
         }
+
+        RateLimiter::clear($throttleKey);
 
         $remember = $request->session()->pull('login.2fa.remember', false);
         $request->session()->forget('login.2fa.id');

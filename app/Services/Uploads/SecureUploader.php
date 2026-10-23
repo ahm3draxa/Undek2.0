@@ -48,7 +48,13 @@ class SecureUploader
 
         // The real content type, sniffed from the file's bytes — the name and
         // the browser-reported type are both trivially faked.
-        $sniffed = (new finfo(FILEINFO_MIME_TYPE))->file($path);
+        // A file the server can't read (e.g. quarantined by the host's own
+        // antivirus mid-upload) is rejected, never waved through.
+        $sniffed = is_readable($path) ? @(new finfo(FILEINFO_MIME_TYPE))->file($path) : false;
+
+        if ($sniffed === false) {
+            return 'The file could not be read, so it was rejected.';
+        }
 
         if (! in_array($sniffed, $type['mimes'], true)) {
             return 'The file\'s contents don\'t match its .'.$extension.' extension, so it was rejected.';

@@ -17,7 +17,7 @@ class ProjectFeedbackController extends Controller
 
         $audience = match (true) {
             $project->client_id === $user->id => ProjectFeedback::CLIENT_TO_UNDEK,
-            $user->hasAnyRole(['ceo', 'admin']) || $project->lead_expert_id === $user->id => ProjectFeedback::UNDEK_TO_CLIENT,
+            $user->can('manage all work') || $project->lead_expert_id === $user->id => ProjectFeedback::UNDEK_TO_CLIENT,
             default => null,
         };
 

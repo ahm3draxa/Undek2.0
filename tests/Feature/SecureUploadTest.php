@@ -87,7 +87,9 @@ class SecureUploadTest extends TestCase
 
     public function test_a_script_renamed_to_jpg_is_rejected(): void
     {
-        $fake = $this->fileWithContents('photo.jpg', '<?php system($_GET["c"]); ?>', 'image/jpeg');
+        // Deliberately harmless: a real web-shell string here gets the temp file
+        // quarantined by Windows Defender before the test can read it.
+        $fake = $this->fileWithContents('photo.jpg', "<?php echo 'not really a photo'; ?>", 'image/jpeg');
 
         $this->submitQuote([$fake])->assertSessionHasErrors('attachments.0');
         $this->assertSame(0, QuoteRequest::count());

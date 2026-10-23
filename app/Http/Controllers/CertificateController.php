@@ -66,7 +66,7 @@ class CertificateController extends Controller
     public function show(Request $request, Certificate $certificate): View
     {
         $user = $request->user();
-        abort_unless($certificate->user_id === $user->id || $user->hasAnyRole(['ceo', 'admin']), 403);
+        abort_unless($certificate->user_id === $user->id || $user->can('manage employees'), 403);
 
         return view('certificates.show', compact('certificate'));
     }

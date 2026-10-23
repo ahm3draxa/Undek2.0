@@ -7,26 +7,26 @@
 <x-sidebar-link :href="route('projects.index')" :active="request()->routeIs('projects.*')">
     <x-icon name="briefcase" class="w-5 h-5 shrink-0" />{{ __('Projects') }}
 </x-sidebar-link>
-@unless (auth()->user()->hasRole('client') && ! auth()->user()->employeeProfile)
+@if (auth()->user()->isStaff())
     <x-sidebar-link :href="route('tasks.index')" :active="request()->routeIs('tasks.*')">
         <x-icon name="check-circle" class="w-5 h-5 shrink-0" />{{ __('My Tasks') }}
     </x-sidebar-link>
-@endunless
+@endif
 @if (auth()->user()->employeeProfile)
     <x-sidebar-link :href="route('certificates.index')" :active="request()->routeIs('certificates.*')">
         <x-icon name="shield-check" class="w-5 h-5 shrink-0" />{{ __('My Certificates') }}
     </x-sidebar-link>
 @endif
-@can('view inbox')
+@can('view any inbox')
     <x-sidebar-link :href="route('inbox.index')" :active="request()->routeIs('inbox.*')">
         <x-icon name="envelope" class="w-5 h-5 shrink-0" />{{ __('Inbox') }}
-        @php $inboxUnread = \App\Models\InboxMessage::unread()->count(); @endphp
+        @php $inboxUnread = \App\Models\InboxMessage::unread()->whereIn('mailbox', \App\Models\InboxMessage::mailboxesFor(auth()->user()))->count(); @endphp
         @if ($inboxUnread)
             <span class="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white" style="background:linear-gradient(135deg,#ff5da2,#7c5cff)">{{ $inboxUnread > 99 ? '99+' : $inboxUnread }}</span>
         @endif
     </x-sidebar-link>
 @endcan
-@can('manage-marketing')
+@can('send marketing')
     <x-sidebar-link :href="route('marketing.index')" :active="request()->routeIs('marketing.*')">
         <x-icon name="sparkles" class="w-5 h-5 shrink-0" />{{ __('Marketing') }}
     </x-sidebar-link>
@@ -70,6 +70,6 @@
 @endcan
 @can('manage roles')
     <x-sidebar-link :href="route('roles.index')" :active="request()->routeIs('roles.*')">
-        <x-icon name="shield-check" class="w-5 h-5 shrink-0" />{{ __('Roles') }}
+        <x-icon name="shield-check" class="w-5 h-5 shrink-0" />{{ __('Roles & Teams') }}
     </x-sidebar-link>
 @endcan

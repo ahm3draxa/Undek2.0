@@ -43,6 +43,7 @@ class RegisteredUserController extends Controller
             // are silently ignored by the hasher, so without a cap here two different
             // long passwords sharing the same first 72 bytes would hash identically.
             'password' => ['required', 'confirmed', 'max:72', Rules\Password::defaults()],
+            'website' => ['prohibited'], // honeypot, see components/honeypot
         ]);
 
         $user = User::create([

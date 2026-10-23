@@ -5,14 +5,14 @@
 
     @php
         $user = auth()->user();
-        $isManager = $user->hasAnyRole(['ceo', 'admin']);
+        $isManager = $user->can('manage all work');
         $canManage = $isManager || $project->lead_expert_id === $user->id;
         $isTeamMember = $project->teamMembers->contains('user_id', $user->id);
         $canSeeTeamChannel = $isManager || $project->lead_expert_id === $user->id || $isTeamMember;
         // Milestones specifically follow the 'manage milestones' permission (granted via
         // role or position) for anyone actually on the project — not just the lead —
         // separate from $canManage, which stays lead/manager-only for project-level settings.
-        $canManageMilestones = $canManage || ($isTeamMember && $user->can('manage milestones'));
+        $canManageMilestones = $canManage || ($isTeamMember && $user->can('manage milestones') && ! $user->isIntern());
     @endphp
 
     <div class="py-12">
@@ -25,7 +25,7 @@
                     <div>
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ $project->title }}</h3>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Client: {{ $project->client->name ?? '—' }}</p>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Lead expert: {{ $project->leadExpert->name ?? 'Unassigned' }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Project lead: {{ $project->leadExpert->name ?? 'Unassigned' }}</p>
                     </div>
 
                     @if ($canManage)
@@ -34,7 +34,7 @@
                             @if ($isManager)
                                 <select name="lead_expert_id" onchange="this.form.submit()" class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 text-sm">
                                     <option value="">Unassigned</option>
-                                    @foreach ($experts as $expert)
+                                    @foreach ($leadCandidates as $expert)
                                         <option value="{{ $expert->id }}" @selected($project->lead_expert_id === $expert->id)>{{ $expert->name }} — {{ $expert->email }}</option>
                                     @endforeach
                                 </select>
@@ -51,12 +51,12 @@
                 </div>
                 @if ($isManager)
                     <p class="text-xs text-gray-400">
-                        @if ($expertEscalatedTo)
-                            No expert or employee available — escalated to {{ $expertEscalatedTo === 'ceo' ? 'the CEO' : 'admins' }} instead.
-                        @elseif ($skillMatched)
-                            Lead expert options are limited to people whose skills match this project's service.
+                        @if ($leadEscalatedTo)
+                            Nobody who can lead projects is available — showing {{ $leadEscalatedTo === 'owner' ? 'owners' : 'admins' }} instead.
+                        @elseif ($leadSkillMatched)
+                            Project lead options are people who can lead projects and have a skill this project needs.
                         @else
-                            No skill match found for this service — showing everyone with an expert, employee, or intern role.
+                            No skill match found for this service — showing everyone who can lead projects.
                         @endif
                     </p>
                 @endif
@@ -228,18 +228,18 @@
                     @if ($canManage)
                         <p class="text-xs text-gray-400 -mt-2">
                             @if ($expertEscalatedTo)
-                                No expert or employee available — escalated to {{ $expertEscalatedTo === 'ceo' ? 'the CEO' : 'admins' }} instead.
+                                No staff available — showing {{ $expertEscalatedTo === 'owner' ? 'owners' : 'admins' }} instead.
                             @elseif ($skillMatched)
                                 Team options are limited to people whose skills match this project's service.
                             @else
-                                No skill match found for this service — showing everyone with an expert, employee, or intern role.
+                                No skill match found for this service — showing all staff.
                             @endif
                         </p>
                     @endif
                     <ul class="space-y-2">
                         @forelse ($project->teamMembers as $member)
                             <li class="flex items-center justify-between text-sm text-gray-700 dark:text-gray-200 border border-gray-100 dark:border-gray-700 rounded-md px-4 py-2">
-                                <span>{{ $member->user->name }} <span class="text-gray-400">— {{ $member->role_on_project ?? 'Team member' }}</span></span>
+                                <span>{{ $member->user->name }} <span class="text-gray-400">— {{ $member->role_on_project ?? 'Member' }}@if ($member->user->employeeProfile?->position) · {{ $member->user->employeeProfile->position->name }}@endif</span></span>
                                 @if ($canManage)
                                     <form method="POST" action="{{ route('projects.team.destroy', [$project, $member]) }}">
                                         @csrf @method('DELETE')
@@ -261,13 +261,8 @@
                                 @endforeach
                             </select>
                             <select name="role_on_project" class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 text-sm mt-3">
-                                <option value="">Role (optional)</option>
-                                @foreach ($positionsByDepartment as $department => $positions)
-                                    <optgroup label="{{ $department }}">
-                                        @foreach ($positions as $position)
-                                            <option value="{{ $position->name }}">{{ $position->name }}</option>
-                                        @endforeach
-                                    </optgroup>
+                                @foreach (\App\Support\Organization::PROJECT_ROLES as $projectRole)
+                                    <option value="{{ $projectRole }}">{{ $projectRole }}</option>
                                 @endforeach
                             </select>
                             <x-secondary-button class="mt-3">Add</x-secondary-button>

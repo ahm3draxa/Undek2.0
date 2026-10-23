@@ -7,31 +7,18 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Spatie\Permission\Traits\HasPermissions;
 
+/**
+ * A job title and its seniority (rank) within one department. Grants nothing
+ * by itself — what someone can do comes from their role and their team.
+ */
 class Position extends Model
 {
-    use HasPermissions;
-
     protected $fillable = ['name', 'slug', 'department_id', 'rank'];
 
     public function employeeProfiles(): HasMany
     {
         return $this->hasMany(EmployeeProfile::class);
-    }
-
-    /**
-     * Position isn't an authenticatable model, so Spatie can't infer a guard from it by
-     * checking auth.guards providers — pin it to 'web' to match every permission in this app.
-     */
-    public function getDefaultGuardName(): string
-    {
-        return 'web';
-    }
-
-    protected function getGuardNames(): \Illuminate\Support\Collection
-    {
-        return collect(['web']);
     }
 
     public function department(): BelongsTo

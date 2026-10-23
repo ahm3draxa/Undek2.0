@@ -96,8 +96,22 @@ class EmployeeProfile extends Model
         });
 
         // The landing page caches the public team tree — drop it so visibility,
-        // position and manager changes show immediately.
-        static::saved(fn () => Cache::forget(HomeController::CACHE_KEY));
-        static::deleted(fn () => Cache::forget(HomeController::CACHE_KEY));
+        // position and manager changes show immediately. (Block bodies, not
+        // arrow functions: Cache::forget() returns false when nothing was
+        // cached, and a listener returning false stops the listeners after it.)
+        static::saved(function () {
+            Cache::forget(HomeController::CACHE_KEY);
+        });
+        static::deleted(function () {
+            Cache::forget(HomeController::CACHE_KEY);
+        });
+
+        // Team tools follow the position: moving someone to another department
+        // swaps the tools they get.
+        static::saved(function (self $profile) {
+            if ($profile->wasChanged('position_id') || $profile->wasRecentlyCreated) {
+                $profile->user?->syncTeamPermissions();
+            }
+        });
     }
 }

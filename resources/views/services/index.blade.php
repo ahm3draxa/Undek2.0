@@ -35,6 +35,7 @@
 
                         <div>
                             <h3 class="font-space font-semibold text-gray-900 dark:text-gray-100">{{ $service->name }}</h3>
+                            <p class="text-xs font-medium mt-0.5 {{ $service->department ? 'text-cyan-600 dark:text-cyan-400' : 'text-amber-600 dark:text-amber-400' }}">{{ $service->department->name ?? 'No team set — edit to choose one' }}</p>
                             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1.5 line-clamp-3">{{ $service->description ?: 'No description yet.' }}</p>
                         </div>
 

@@ -23,12 +23,13 @@ class InboxController extends Controller
 
     public function index(Request $request, InboxFetcher $fetcher): View
     {
-        $mailboxes = array_keys(config('inbox.mailboxes'));
+        $mailboxes = InboxMessage::mailboxesFor($request->user());
         $mailbox = in_array($request->query('mailbox'), $mailboxes, true) ? $request->query('mailbox') : null;
         $unreadOnly = $request->boolean('unread');
         $search = trim((string) $request->query('q'));
 
         $messages = InboxMessage::incoming()
+            ->whereIn('mailbox', $mailboxes)
             ->withCount('attachments')
             ->when($mailbox, fn ($q) => $q->where('mailbox', $mailbox))
             ->when($unreadOnly, fn ($q) => $q->whereNull('read_at'))
@@ -40,7 +41,7 @@ class InboxController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        $unreadCounts = InboxMessage::unread()->selectRaw('mailbox, count(*) as total')->groupBy('mailbox')->pluck('total', 'mailbox');
+        $unreadCounts = InboxMessage::unread()->whereIn('mailbox', $mailboxes)->selectRaw('mailbox, count(*) as total')->groupBy('mailbox')->pluck('total', 'mailbox');
         $configured = collect($mailboxes)->mapWithKeys(fn ($m) => [$m => $fetcher->isConfigured($m)]);
 
         return view('inbox.index', compact('messages', 'mailboxes', 'mailbox', 'unreadOnly', 'search', 'unreadCounts', 'configured'));
@@ -48,6 +49,8 @@ class InboxController extends Controller
 
     public function show(Request $request, InboxMessage $message): View
     {
+        $this->authorizeMailbox($message);
+
         if ($message->isUnread()) {
             $message->update(['read_at' => now(), 'read_by' => $request->user()->id]);
         }
@@ -65,6 +68,8 @@ class InboxController extends Controller
      */
     public function body(Request $request, InboxMessage $message): Response
     {
+        $this->authorizeMailbox($message);
+
         $images = $request->boolean('images') ? 'data: https:' : 'data:';
 
         $html = '<!doctype html><html><head><meta charset="utf-8"><base target="_blank">'
@@ -84,6 +89,7 @@ class InboxController extends Controller
 
     public function reply(Request $request, InboxMessage $message): RedirectResponse
     {
+        $this->authorizeMailbox($message);
         abort_unless($message->direction === 'in' && $message->from_email, 422, 'This message has no sender to reply to.');
 
         $data = $request->validate([
@@ -136,6 +142,8 @@ class InboxController extends Controller
 
     public function markUnread(InboxMessage $message): RedirectResponse
     {
+        $this->authorizeMailbox($message);
+
         $message->update(['read_at' => null, 'read_by' => null]);
 
         return redirect()->route('inbox.index', ['mailbox' => $message->mailbox])->with('status', 'Marked as unread.');
@@ -143,6 +151,7 @@ class InboxController extends Controller
 
     public function attachment(InboxMessage $message, InboxAttachment $attachment): StreamedResponse
     {
+        $this->authorizeMailbox($message);
         abort_unless($attachment->inbox_message_id === $message->id && $attachment->isStored(), 404);
 
         return $this->streamStoredFile($attachment->disk, $attachment->path, $attachment->original_name, $attachment->mime_type);
@@ -162,7 +171,7 @@ class InboxController extends Controller
         RateLimiter::hit('inbox-refresh', 60);
 
         $results = [];
-        foreach (array_keys(config('inbox.mailboxes')) as $mailbox) {
+        foreach (InboxMessage::mailboxesFor($request->user()) as $mailbox) {
             if (! $fetcher->isConfigured($mailbox)) {
                 continue;
             }
@@ -176,5 +185,14 @@ class InboxController extends Controller
         }
 
         return back()->with('status', $results ? implode(' · ', $results) : 'No mailboxes are configured yet.');
+    }
+
+    /**
+     * Each mailbox belongs to a team — info@ to Management, support@ to IT
+     * Support — so access is checked per message, not just per page.
+     */
+    private function authorizeMailbox(InboxMessage $message): void
+    {
+        abort_unless(in_array($message->mailbox, InboxMessage::mailboxesFor(auth()->user()), true), 403);
     }
 }

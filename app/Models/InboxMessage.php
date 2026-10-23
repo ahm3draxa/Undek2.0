@@ -60,6 +60,21 @@ class InboxMessage extends Model
         return $this->belongsTo(User::class, 'read_by');
     }
 
+    /**
+     * The mailboxes this person may read — each one is a team tool with its
+     * own "view <mailbox> inbox" permission (info@ for Management, support@
+     * for IT Support).
+     *
+     * @return array<int, string>
+     */
+    public static function mailboxesFor(User $user): array
+    {
+        return collect(config('inbox.mailboxes'))->keys()
+            ->filter(fn ($mailbox) => $user->can("view $mailbox inbox"))
+            ->values()
+            ->all();
+    }
+
     public function scopeIncoming($query)
     {
         return $query->where('direction', 'in');

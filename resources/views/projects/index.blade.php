@@ -7,6 +7,14 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
             <x-status-banner />
 
+            @can('create projects')
+                <div class="flex justify-end">
+                    <a href="{{ route('projects.create') }}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold text-white" style="background:linear-gradient(135deg,#7c5cff,#22d3ee)">
+                        <x-icon name="plus" class="w-4 h-4" />New project
+                    </a>
+                </div>
+            @endcan
+
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <x-stat-card icon="briefcase" label="Total" :value="$stats['total']" accent="violet" />
                 <x-stat-card icon="bolt" label="In progress" :value="$stats['in_progress']" accent="amber" />

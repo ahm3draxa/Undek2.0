@@ -24,6 +24,7 @@
         }"
     >
         @csrf
+        <x-honeypot />
 
         <div>
             <x-auth.label for="service_id" :value="__('Service')" />

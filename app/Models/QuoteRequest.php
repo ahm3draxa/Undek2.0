@@ -24,6 +24,7 @@ class QuoteRequest extends Model
         'description',
         'requirements',
         'status',
+        'source',
         'assigned_to',
     ];
 

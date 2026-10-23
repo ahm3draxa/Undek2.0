@@ -5,7 +5,7 @@
 
     @php
         $user = auth()->user();
-        $isManager = $user->hasAnyRole(['ceo', 'admin']);
+        $isManager = $user->can('manage all work');
     @endphp
 
     <div class="py-12">
@@ -67,9 +67,9 @@
             @if ($isManager && ! $quoteRequest->assignedSpecialist)
                 @php
                     $specialistSubtitle = match (true) {
-                        (bool) $specialistEscalatedTo => 'No specialist available — escalated to '.($specialistEscalatedTo === 'ceo' ? 'the CEO' : 'admins').' instead.',
-                        $skillMatched => 'Showing specialists whose skills match this service.',
-                        default => 'No skill match found for this service — showing everyone with a specialist-level role.',
+                        (bool) $specialistEscalatedTo => 'Nobody in Sales is available — showing '.($specialistEscalatedTo === 'owner' ? 'owners' : 'admins').' instead.',
+                        $skillMatched => 'Showing Sales staff whose skills match this service.',
+                        default => 'No skill match found for this service — showing everyone in Sales.',
                     };
                 @endphp
                 <x-panel icon="user-circle" title="Assign a specialist" accent="violet" :subtitle="$specialistSubtitle">
@@ -163,14 +163,14 @@
                                           x-data="{ milestones: [{ title: '', due_date: '' }] }">
                                         @csrf
                                         <div>
-                                            <x-input-label for="lead_expert_id" value="Lead expert (optional — can be set later)" />
+                                            <x-input-label for="lead_expert_id" value="Project lead (optional — can be set later)" />
                                             <p class="text-xs text-gray-400 mb-1">
                                                 @if ($expertEscalatedTo)
-                                                    No expert or employee available — escalated to {{ $expertEscalatedTo === 'ceo' ? 'the CEO' : 'admins' }} instead.
+                                                    Nobody who can lead projects is available — showing {{ $expertEscalatedTo === 'owner' ? 'owners' : 'admins' }} instead.
                                                 @elseif ($expertSkillMatched)
-                                                    Showing experts whose skills match this service.
+                                                    Showing people who can lead projects and have a matching skill (the service's own team first).
                                                 @else
-                                                    No skill match found — showing everyone with an expert/employee role.
+                                                    No skill match found — showing everyone who can lead projects.
                                                 @endif
                                             </p>
                                             <select id="lead_expert_id" name="lead_expert_id" class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 shadow-sm">

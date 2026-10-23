@@ -2,7 +2,7 @@
 
 _IT Solutions Platform_
 
-A full-stack Laravel platform for a digital agency: public landing page, client quote intake with skill-based specialist routing, an Upwork-style quotation → project → milestone pipeline with polling chat, Spatie roles & permissions (CEO/Admin/Specialist/Expert/Employee/Intern/Client), flexible employee compensation (hourly / fixed salary / fixed project price / % of project) with increments and promotions, a marketing email tool, self-serve certificates & letters, client/Undek project feedback, and CEO-only financial reports.
+A full-stack Laravel platform for a digital agency: public landing page, client quote intake with skill-based specialist routing, an Upwork-style quotation → project → milestone pipeline with polling chat, roles (Owner/Admin/Staff/Client) plus department-based team tools, flexible employee compensation (hourly / fixed salary / fixed project price / % of project) with increments and promotions, a marketing email tool, self-serve certificates & letters, client/Undek project feedback, and owner/Management-only financial reports.
 
 ## Requirements
 
@@ -49,14 +49,29 @@ Serve it with your webserver of choice pointed at `public/`, or for quick local 
 php artisan serve
 ```
 
-### Default login
+### Default login (local development only)
 
-Seeding creates one CEO account:
+On a `local` or `testing` environment, seeding creates one owner account: `ceo@undek.com` / `password`.
+It is **never** created on any other environment. On a server, create the first owner deliberately:
 
-- **Email:** `ceo@undek.com`
-- **Password:** `password`
+```bash
+php artisan tinker --execute="\$u = App\Models\User::create(['name' => 'Your Name', 'email' => 'you@undek.com', 'password' => bcrypt('a-strong-password'), 'is_active' => true]); \$u->forceFill(['email_verified_at' => now()])->save(); \$u->assignRole('owner');"
+```
 
-Change this before using the app for anything real — it's a local-dev placeholder, not a production credential.
+### How access is organised
+
+Defined in one place, `app/Support/Organization.php`. Each concept answers one question:
+
+| Concept | Question | Values |
+|---|---|---|
+| Role | What can you do in the portal? | Owner (everything), Admin, Staff, Client |
+| Department (team) | Which team are you in — and so which team tools do you get? | Management, Web Development, SEO & Marketing, Design & Video, IT Support, Sales |
+| Position | What's your job title and seniority? | Titles ranked within a department, e.g. CEO & Founder, Co-Founder, Senior Developer |
+| Employment type | What's your contract? | Full-time, part-time, contract, internship |
+| Skills | What can you work on? | Used only to suggest people for work — never grants access |
+
+Effective access = the role's permissions + the tools of every department the person holds a position in
+(primary or secondary). Both are edited on the **Roles & Teams** screen.
 
 ### Notes
 

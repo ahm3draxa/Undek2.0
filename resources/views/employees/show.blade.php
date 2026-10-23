@@ -126,7 +126,7 @@
                         <select name="level" required class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 text-sm mt-3">
                             <option value="beginner">Beginner</option>
                             <option value="intermediate" selected>Intermediate</option>
-                            <option value="expert">Expert</option>
+                            <option value="advanced">Advanced</option>
                         </select>
                         <x-secondary-button class="mt-3"><x-icon name="plus" class="w-3.5 h-3.5" />Add</x-secondary-button>
                     </form>

@@ -21,11 +21,10 @@ class QuotationController extends Controller
     {
         $user = $request->user();
         abort_unless(
-            $user->hasAnyRole(['ceo', 'admin']) || $quoteRequest->assigned_to === $user->id,
+            $user->can('manage all work') || $quoteRequest->assigned_to === $user->id,
             403
         );
         $this->ensureNegotiationOpen($quoteRequest);
-        $this->supersedePending($quoteRequest);
 
         $data = $request->validate([
             'budget' => ['required', 'numeric', 'min:0'],
@@ -33,6 +32,10 @@ class QuotationController extends Controller
             'estimated_days' => ['required', 'integer', 'min:1'],
             'notes' => ['nullable', 'string'],
         ]);
+
+        // Only now that the new terms are valid does the pending offer give way —
+        // superseding first would leave the client with no live offer if this failed.
+        $this->supersedePending($quoteRequest);
 
         $days = (int) $data['estimated_days'];
         $currency = $data['currency'] ?? 'USD';
@@ -72,7 +75,6 @@ class QuotationController extends Controller
         abort_unless($user && $quoteRequest->client_id === $user->id, 403);
         abort_unless($quoteRequest->assigned_to, 422, 'A specialist needs to be assigned before you can propose terms.');
         $this->ensureNegotiationOpen($quoteRequest);
-        $this->supersedePending($quoteRequest);
 
         $data = $request->validate([
             'budget' => ['required', 'numeric', 'min:0'],
@@ -80,6 +82,10 @@ class QuotationController extends Controller
             'delivery_date' => ['required', 'date', 'after:today'],
             'notes' => ['nullable', 'string'],
         ]);
+
+        // Only now that the new terms are valid does the pending offer give way —
+        // superseding first would leave the client with no live offer if this failed.
+        $this->supersedePending($quoteRequest);
 
         $deliveryDate = Carbon::parse($data['delivery_date']);
         $currency = $data['currency'] ?? 'USD';
@@ -122,7 +128,7 @@ class QuotationController extends Controller
         abort_unless($quotation->status === 'sent', 422, 'This proposal has already been responded to.');
         abort_unless($quoteRequest->latestQuotation?->is($quotation), 422, 'A newer proposal exists — respond to that one instead.');
 
-        $isManager = $user && $user->hasAnyRole(['ceo', 'admin']);
+        $isManager = $user && $user->can('manage all work');
         $proposedByClient = $quotation->wasProposedByClient();
 
         $allowed = $isManager || ($proposedByClient

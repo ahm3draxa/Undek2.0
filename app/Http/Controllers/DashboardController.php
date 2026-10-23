@@ -38,19 +38,19 @@ class DashboardController extends Controller
     }
 
     /**
-     * Which dashboard layout a user sees, based on their highest-privilege role.
+     * Which dashboard layout a user sees, based on what they're allowed to do.
      */
     private function viewFor(User $user): string
     {
-        if ($user->hasAnyRole(['ceo', 'admin'])) {
+        if ($user->can('manage all work')) {
             return 'executive';
         }
 
-        if ($user->hasRole('specialist')) {
+        if ($user->can('send quotation')) {
             return 'specialist';
         }
 
-        if ($user->hasAnyRole(['expert', 'employee', 'intern'])) {
+        if ($user->isStaff()) {
             return 'expert';
         }
 

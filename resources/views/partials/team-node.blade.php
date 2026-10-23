@@ -16,11 +16,7 @@
             <div style="width:56px;height:56px;border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#7c5cff,#22d3ee);font-family:'Space Grotesk';font-weight:700;font-size:18px;color:#08080c">{{ $initials }}</div>
         @endif
         <div style="font-family:'Space Grotesk';font-weight:600;font-size:16px;color:#f5f5fa">{{ $user->name }}</div>
-        @php
-            $roleName = $user->roles->first()->name ?? 'Team';
-            $roleLabel = $roleName === 'ceo' ? 'CEO' : \Illuminate\Support\Str::of($roleName)->replace('_', ' ')->title();
-        @endphp
-        <div style="font-family:'JetBrains Mono';font-size:11px;letter-spacing:.06em;color:#22d3ee;margin-top:4px">{{ $profile->position->name ?? $roleLabel }}</div>
+        <div style="font-family:'JetBrains Mono';font-size:11px;letter-spacing:.06em;color:#22d3ee;margin-top:4px">{{ $profile->position->name ?? 'Team' }}</div>
         @if ($profile->department)
             <div style="font-size:12px;color:#7a7a92;margin-top:6px">{{ $profile->department->name }}</div>
         @endif

@@ -5,89 +5,104 @@ namespace App\Http\Controllers\Concerns;
 use App\Models\QuoteRequest;
 use App\Models\Service;
 use App\Models\User;
+use App\Support\Organization;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
+/**
+ * Who to suggest for a piece of work. Three pools, each defined by what the
+ * person is allowed to do rather than by a role name:
+ *
+ *   'quote' — staff who can price quote requests ('send quotation', i.e. Sales)
+ *   'lead'  — staff who can lead projects ('lead projects', i.e. delivery teams), not interns
+ *   'team'  — any staff member
+ *
+ * Within a pool, people with a matching skill are suggested first — skills
+ * are what match someone to work, whichever department they sit in.
+ */
 trait FiltersBySkill
 {
     /**
-     * The escalation chain used whenever a functional role (specialist, expert, employee...)
-     * has nobody in it: try Admin next, then CEO — who always exists (the app enforces at
-     * least one CEO account at all times). This is the single place that answers "what
-     * happens if the right rank isn't available" for every assignment dropdown in the app,
-     * instead of each controller inventing its own ad-hoc fallback list.
+     * When a pool has nobody in it: admins next, then owners — who always
+     * exist (the app keeps at least one owner). The single answer to "what if
+     * the right person isn't available" for every assignment dropdown.
      */
-    private const ESCALATION_CHAIN = ['admin', 'ceo'];
+    private const ESCALATION_CHAIN = [Organization::ADMIN, Organization::OWNER];
 
     /**
-     * Users holding any of the given roles, narrowed down to whoever has at least one of the
-     * given skills. If nobody holds the requested roles at all, escalates up the management
-     * chain (Admin, then CEO) rather than returning an empty, dead-end list. Skill-matching
-     * itself also falls back to the full (possibly escalated) role pool if nobody matches.
-     *
      * @return array{0: Collection, 1: bool, 2: ?string} candidates, whether skill-matching was
-     *         applied, and which role we had to escalate to (null if the requested roles had
-     *         people in them already)
+     *         applied, and which role we had to escalate to (null if the pool had people in it)
      */
-    protected function candidatesForSkills(array $roles, Collection $skillIds): array
+    protected function candidatesForSkills(string $pool, Collection $skillIds, ?Service $service = null): array
     {
-        [$activeRoles, $escalatedTo] = $this->resolveRolePool($roles);
+        [$query, $escalatedTo] = $this->resolvePool($pool);
 
-        $base = User::role($activeRoles)->with('skills')->orderBy('name')->get();
+        $base = (clone $query)->with(['skills', 'employeeProfile.position'])->orderBy('name')->get();
+        $matched = $skillIds->isEmpty()
+            ? collect()
+            : (clone $query)->with(['skills', 'employeeProfile.position'])
+                ->whereHas('skills', fn ($q) => $q->whereIn('skills.id', $skillIds))
+                ->orderBy('name')->get();
 
-        if ($skillIds->isEmpty()) {
-            return [$base, false, $escalatedTo];
+        $candidates = $matched->isNotEmpty() ? $matched : $base;
+
+        // The service's own team first, everyone else after.
+        if ($service?->department_id) {
+            $candidates = $candidates->sortBy(fn (User $user) => $user->departments()->contains('id', $service->department_id) ? 0 : 1)->values();
         }
 
-        $matched = User::role($activeRoles)->with('skills')
-            ->whereHas('skills', fn ($q) => $q->whereIn('skills.id', $skillIds))
-            ->orderBy('name')->get();
+        return [$candidates, $matched->isNotEmpty(), $escalatedTo];
+    }
 
-        return $matched->isNotEmpty() ? [$matched, true, $escalatedTo] : [$base, false, $escalatedTo];
+    protected function candidatesForService(string $pool, ?Service $service): array
+    {
+        return $this->candidatesForSkills($pool, $service?->skills->pluck('id') ?? collect(), $service);
     }
 
     /**
-     * Finds the first role tier (requested roles, then Admin, then CEO) that actually has
-     * someone in it, so callers never hit a completely empty candidate list.
-     *
-     * @return array{0: array, 1: ?string}
+     * Sourced from whatever the client actually chose on their request —
+     * falling back to the service's default skills if they didn't pick any.
      */
-    private function resolveRolePool(array $roles): array
-    {
-        if (User::role($roles)->exists()) {
-            return [$roles, null];
-        }
-
-        $tried = $roles;
-        foreach (self::ESCALATION_CHAIN as $fallbackRole) {
-            $tried = array_unique([...$tried, $fallbackRole]);
-
-            if (User::role($tried)->exists()) {
-                return [$tried, $fallbackRole];
-            }
-        }
-
-        return [$tried, end(self::ESCALATION_CHAIN)];
-    }
-
-    /**
-     * Same as candidatesForSkills, but sourced from a service's required skills.
-     */
-    protected function candidatesForService(array $roles, ?Service $service): array
-    {
-        return $this->candidatesForSkills($roles, $service?->skills->pluck('id') ?? collect());
-    }
-
-    /**
-     * Same as candidatesForSkills, sourced from whatever the client actually chose
-     * on their request — falling back to the service's default skills if they
-     * didn't pick any.
-     */
-    protected function candidatesForQuoteRequest(array $roles, QuoteRequest $quoteRequest): array
+    protected function candidatesForQuoteRequest(string $pool, QuoteRequest $quoteRequest): array
     {
         $skillIds = $quoteRequest->skills->isNotEmpty()
             ? $quoteRequest->skills->pluck('id')
             : ($quoteRequest->service?->skills->pluck('id') ?? collect());
 
-        return $this->candidatesForSkills($roles, $skillIds);
+        return $this->candidatesForSkills($pool, $skillIds, $quoteRequest->service);
+    }
+
+    /**
+     * @return array{0: Builder, 1: ?string}
+     */
+    private function resolvePool(string $pool): array
+    {
+        $query = $this->poolQuery($pool);
+
+        if ((clone $query)->exists()) {
+            return [$query, null];
+        }
+
+        foreach (self::ESCALATION_CHAIN as $role) {
+            $fallback = User::role($role)->where('is_active', true);
+
+            if ((clone $fallback)->exists()) {
+                return [$fallback, $role];
+            }
+        }
+
+        return [User::role(Organization::OWNER), Organization::OWNER];
+    }
+
+    private function poolQuery(string $pool): Builder
+    {
+        $staff = User::role(Organization::STAFF)->where('is_active', true);
+
+        return match ($pool) {
+            'quote' => $staff->permission('send quotation'),
+            'lead' => $staff->permission('lead projects')
+                ->whereDoesntHave('employeeProfile', fn ($q) => $q->where('employment_type', 'intern')),
+            'team' => $staff,
+        };
     }
 }

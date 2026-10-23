@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Organization;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -114,19 +115,89 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Recompute this user's direct permissions from every position they currently hold.
-     * Positions are the only source of direct permissions in this app — roles are separate
-     * and untouched — so this is a full resync, not an additive grant.
+     * Every department this person works in — their primary position's, plus
+     * any secondary positions'.
      */
-    public function syncPermissionsFromPositions(): void
+    public function departments(): \Illuminate\Support\Collection
     {
-        $permissionNames = $this->allPositions()
-            ->flatMap(fn (Position $position) => $position->permissions->pluck('name'))
+        return Department::whereIn('id', $this->allPositions()->pluck('department_id')->filter())->get();
+    }
+
+    /**
+     * Recompute this user's direct permissions: exactly the team tools of
+     * every department they hold a position in. Role permissions are separate
+     * and untouched, so this is a full resync, not an additive grant.
+     */
+    public function syncTeamPermissions(): void
+    {
+        $permissionNames = $this->departments()
+            ->load('permissions')
+            ->flatMap(fn (Department $department) => $department->permissions->pluck('name'))
             ->unique()
             ->values()
             ->all();
 
         $this->syncPermissions($permissionNames);
+    }
+
+    public function isOwner(): bool
+    {
+        return $this->hasRole(Organization::OWNER);
+    }
+
+    /**
+     * Whether this person may change another person's account — role,
+     * password, email, 2FA, active status. Owner and admin accounts can only
+     * be changed by an owner, so 'manage users' can never be used to take
+     * over a more powerful account or to promote oneself.
+     */
+    public function canManageAccountOf(self $target): bool
+    {
+        if ($this->isOwner()) {
+            return true;
+        }
+
+        return $this->can('manage users')
+            && $this->id !== $target->id
+            && ! $target->hasAnyRole([Organization::OWNER, Organization::ADMIN]);
+    }
+
+    /**
+     * Roles this person may hand out: owners any, everyone else only staff
+     * and client.
+     *
+     * @return array<int, string>
+     */
+    public function assignableRoles(): array
+    {
+        return $this->isOwner()
+            ? array_keys(Organization::ROLES)
+            : [Organization::STAFF, Organization::CLIENT];
+    }
+
+    public function isStaff(): bool
+    {
+        return $this->hasAnyRole(Organization::STAFF_ROLES);
+    }
+
+    /**
+     * Interns (employment type) work on what they're given: they can't lead
+     * projects or manage a project's milestones beyond the ones assigned to
+     * them, whatever their team.
+     */
+    public function isIntern(): bool
+    {
+        return $this->employeeProfile?->employment_type === 'intern';
+    }
+
+    /**
+     * How this person is described to others: their job title if they have
+     * one, otherwise their role.
+     */
+    public function title(): string
+    {
+        return $this->employeeProfile?->position?->name
+            ?? Organization::roleLabel($this->roles->first()?->name);
     }
 
     public function quoteRequests(): HasMany

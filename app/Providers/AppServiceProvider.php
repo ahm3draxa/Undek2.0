@@ -5,6 +5,9 @@ namespace App\Providers;
 use App\Models\QuoteRequest;
 use App\Models\User;
 use Illuminate\Auth\Events\Verified;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
@@ -39,9 +42,21 @@ class AppServiceProvider extends ServiceProvider
         // proven — see QuoteRequest::claimGuestRequestsFor().
         Event::listen(Verified::class, fn (Verified $event) => QuoteRequest::claimGuestRequestsFor($event->user));
 
-        Gate::define('manage-marketing', function (User $user) {
-            return $user->hasAnyRole(['ceo', 'admin'])
-                || $user->skills()->whereHas('category', fn ($q) => $q->where('name', 'Marketing'))->exists();
-        });
+        // Anonymous forms (quote requests with uploads, registration): enough for
+        // a real person retrying, far too little to flood storage or the
+        // hourly database allowance.
+        RateLimiter::for('public-forms', fn (Request $request) => [
+            Limit::perMinute(5)->by($request->ip()),
+            Limit::perHour(20)->by($request->ip()),
+        ]);
+
+        // Owners can do everything, including anything added after the role's
+        // permissions were last synced.
+        Gate::before(fn (User $user) => $user->isOwner() ? true : null);
+
+        // Whether someone can open at least one shared mailbox — each mailbox
+        // has its own "view <mailbox> inbox" permission (see InboxMessage::mailboxesFor).
+        Gate::define('view any inbox', fn (User $user) => collect(config('inbox.mailboxes'))
+            ->keys()->contains(fn ($mailbox) => $user->can("view $mailbox inbox")));
     }
 }
