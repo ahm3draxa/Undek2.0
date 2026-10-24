@@ -59,6 +59,7 @@ return new class extends Migration
         'executive' => 'management', 'operations' => 'management', 'finance' => 'management',
         'human-resources' => 'management', 'engineering' => 'web-development', 'design' => 'design-video',
         'marketing' => 'seo-marketing', 'customer-support' => 'it-support', 'it-technical-support' => 'it-support',
+        'e-commerce' => 'web-development', 'ecommerce' => 'web-development',
     ];
 
     public function up(): void
@@ -193,8 +194,11 @@ return new class extends Migration
         $roles = collect(['owner', 'admin', 'staff', 'client'])->mapWithKeys(fn ($name) => [$name => Role::findOrCreate($name, 'web')]);
         $legacy = Role::whereIn('name', ['ceo', 'specialist', 'expert', 'employee', 'intern'])->where('guard_name', 'web')->get()->keyBy('name');
 
+        // Only rows for accounts that still exist — leftovers from deleted users
+        // disappear with their legacy roles below (the pivot cascades).
         $usersWithLegacy = DB::table('model_has_roles')
             ->where('model_type', User::class)
+            ->whereIn('model_id', DB::table('users')->select('id'))
             ->whereIn('role_id', $legacy->pluck('id')->concat([$roles['admin']->id, $roles['client']->id]))
             ->get()
             ->groupBy('model_id');
