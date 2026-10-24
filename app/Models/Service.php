@@ -2,13 +2,12 @@
 
 namespace App\Models;
 
-use App\Http\Controllers\HomeController;
+use App\Support\PublicCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\Cache;
 
 class Service extends Model
 {
@@ -35,14 +34,14 @@ class Service extends Model
 
     protected static function booted(): void
     {
-        // The landing page caches the service catalog — drop it so edits show immediately.
-        // Block bodies on purpose: Cache::forget() can return false, which
-        // would stop any listener registered after this one.
+        // Public pages cache the service catalog — drop it so edits show immediately.
+        // (Block bodies, not arrow functions: a listener returning false stops
+        // the listeners after it.)
         static::saved(function () {
-            Cache::forget(HomeController::CACHE_KEY);
+            PublicCache::flush();
         });
         static::deleted(function () {
-            Cache::forget(HomeController::CACHE_KEY);
+            PublicCache::flush();
         });
     }
 

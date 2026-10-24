@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Service;
+use App\Support\PublicCache;
 use Illuminate\Support\Str;
 
 /**
@@ -37,7 +38,10 @@ class ChatbotResponder
             return "Pricing depends on scope, so we don't publish flat rates. The fastest way to get real numbers is to request a quote — tell us the service and describe the project, and a specialist will send a tailored quote, usually within a day.";
         }
 
-        foreach (Service::where('is_active', true)->get() as $service) {
+        // Cached: the chatbot is public, so it mustn't open a MySQL connection per message.
+        $services = PublicCache::remember(PublicCache::CHATBOT_SERVICES, fn () => Service::where('is_active', true)->get(['id', 'name', 'description']));
+
+        foreach ($services as $service) {
             $keywords = array_unique(array_filter(array_merge(
                 [Str::lower($service->name)],
                 explode(' ', Str::lower($service->name))

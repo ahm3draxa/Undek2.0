@@ -280,7 +280,7 @@
 
             <x-chat :index-url="route('quote-requests.messages.index', $quoteRequest)"
                 :store-url="route('quote-requests.messages.store', $quoteRequest)"
-                title="Discussion" />
+                title="Discussion" subtitle="Talk through the details before and during the quote" />
         </div>
     </div>
 </x-app-layout>

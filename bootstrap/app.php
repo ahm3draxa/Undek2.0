@@ -13,7 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->prepend(\App\Http\Middleware\RedirectToHttps::class);
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
-        $middleware->web(append: \App\Http\Middleware\EnsureAccountIsActive::class);
+        $middleware->web(append: [
+            \App\Http\Middleware\EnsureAccountIsActive::class,
+            \App\Http\Middleware\EnforceSingleSession::class,
+        ]);
 
         $middleware->alias([
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,

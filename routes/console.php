@@ -21,14 +21,16 @@ Artisan::command('inspire', function () {
 |
 */
 
-// Queued mail (marketing campaigns): a small batch every two minutes keeps
-// sending under the mail host's hourly limit and never overlaps itself.
+// Queued mail (marketing campaigns, invitations): one batch every five
+// minutes — 12 connections an hour — sized so the per-minute sending rate
+// stays under the mail host's limit. Never overlaps itself.
 Schedule::command('queue:work', [
     '--stop-when-empty',
-    '--max-jobs' => config('mail.marketing.per_minute') * 2,
-    '--max-time' => 100,
+    '--max-jobs' => config('mail.marketing.per_minute') * 5,
+    '--max-time' => 240,
     '--tries' => 3,
-])->everyTwoMinutes()->withoutOverlapping(10);
+])->everyFiveMinutes()->withoutOverlapping(10);
 
-// Shared inboxes (info@ / support@).
-Schedule::command('inbox:fetch')->everyFiveMinutes()->withoutOverlapping(10);
+// Shared inboxes (info@ / support@) — 6 connections an hour; "Check now" in
+// the inbox fetches on demand.
+Schedule::command('inbox:fetch')->everyTenMinutes()->withoutOverlapping(15);

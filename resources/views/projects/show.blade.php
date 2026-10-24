@@ -333,14 +333,36 @@
                 </x-panel>
             @endif
 
-            <x-chat :index-url="route('projects.messages.index', $project)"
-                :store-url="route('projects.messages.store', $project)"
-                title="Project chat" />
-
             @if ($canSeeTeamChannel)
-                <x-chat :index-url="route('projects.team-messages.index', $project)"
-                    :store-url="route('projects.team-messages.store', $project)"
-                    title="Team channel — internal only" />
+                {{-- Two threads, one on screen at a time: only the visible chat refreshes. --}}
+                <div x-data="{ tab: 'client' }" class="bg-white dark:bg-gray-800 shadow-sm rounded-xl overflow-hidden relative">
+                    <div class="absolute top-0 left-0 right-0 h-[3px]" style="background:linear-gradient(135deg,#7c5cff,#22d3ee)"></div>
+                    <div class="flex items-center gap-1 px-5 pt-5" role="tablist">
+                        <button type="button" role="tab" @click="tab = 'client'" :aria-selected="tab === 'client'"
+                            class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-space font-semibold transition"
+                            :class="tab === 'client' ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'">
+                            <x-icon name="chat-bubble-left-right" class="w-4 h-4" />Client chat
+                        </button>
+                        <button type="button" role="tab" @click="tab = 'team'" :aria-selected="tab === 'team'"
+                            class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-space font-semibold transition"
+                            :class="tab === 'team' ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'">
+                            <x-icon name="users" class="w-4 h-4" />Team channel
+                        </button>
+                        <span class="ml-auto text-xs text-gray-400 dark:text-gray-500" x-text="tab === 'client' ? 'Visible to the client' : 'Internal — the client never sees this'"></span>
+                    </div>
+                    <div x-show="tab === 'client'">
+                        <x-chat :framed="false" :index-url="route('projects.messages.index', $project)"
+                            :store-url="route('projects.messages.store', $project)" />
+                    </div>
+                    <div x-show="tab === 'team'" x-cloak>
+                        <x-chat :framed="false" :index-url="route('projects.team-messages.index', $project)"
+                            :store-url="route('projects.team-messages.store', $project)" />
+                    </div>
+                </div>
+            @else
+                <x-chat :index-url="route('projects.messages.index', $project)"
+                    :store-url="route('projects.messages.store', $project)"
+                    title="Project chat" subtitle="You and the Undek team working on this project" />
             @endif
         </div>
     </div>

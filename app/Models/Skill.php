@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\PublicCache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -13,6 +14,17 @@ class Skill extends Model
         'slug',
         'category_id',
     ];
+
+    protected static function booted(): void
+    {
+        // The public quote form caches the skill list.
+        static::saved(function () {
+            PublicCache::flush();
+        });
+        static::deleted(function () {
+            PublicCache::flush();
+        });
+    }
 
     public function category(): BelongsTo
     {

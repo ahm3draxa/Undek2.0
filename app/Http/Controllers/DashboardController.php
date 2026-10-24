@@ -14,12 +14,48 @@ use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
+    /**
+     * Everything on first load comes from this one request (one MySQL
+     * connection); the stats then refresh every few minutes while the page is
+     * actually being looked at.
+     */
     public function index(Request $request): View
     {
         $user = $request->user();
+        $view = $this->viewFor($user);
+
+        $myTasks = $user->isStaff()
+            ? Milestone::with('project:id,title')
+                ->where('assigned_to', $user->id)
+                ->where('status', '!=', 'completed')
+                ->orderByRaw('due_date IS NULL')->orderBy('due_date')
+                ->limit(5)->get()
+            : collect();
+
+        $myQuotes = $user->can('send quotation')
+            ? QuoteRequest::with('service:id,name')
+                ->where('assigned_to', $user->id)
+                ->whereIn('status', ['pending', 'quoted'])
+                ->latest()->limit(5)->get()
+            : collect();
+
+        $attention = $user->can('manage all work') ? [
+            'unassigned_quotes' => QuoteRequest::with('service:id,name')->where('status', 'pending')->whereNull('assigned_to')->latest()->limit(5)->get(),
+            'projects_without_lead' => Project::whereNull('lead_expert_id')->whereIn('status', ['pending_assignment', 'in_progress'])->count(),
+            'overdue_milestones' => Milestone::where('status', '!=', 'completed')->whereNotNull('due_date')->where('due_date', '<', now()->toDateString())->count(),
+        ] : null;
+
+        $clientItems = $view === 'client'
+            ? $user->clientProjects()->whereIn('status', ['pending_assignment', 'in_progress'])->latest()->limit(5)->get()
+            : collect();
 
         return view('dashboard', [
-            'view' => $this->viewFor($user),
+            'view' => $view,
+            'initialStats' => $this->statsFor($user, $view),
+            'myTasks' => $myTasks,
+            'myQuotes' => $myQuotes,
+            'attention' => $attention,
+            'clientItems' => $clientItems,
         ]);
     }
 
@@ -27,14 +63,19 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
-        $data = match ($this->viewFor($user)) {
-            'executive' => $this->executiveStats(),
+        return response()->json($this->statsFor($user, $this->viewFor($user)));
+    }
+
+    private function statsFor(User $user, string $view): array
+    {
+        $data = match ($view) {
+            'executive' => $this->executiveStats($user),
             'specialist' => $this->specialistStats($user),
             'expert' => $this->expertStats($user),
             default => $this->clientStats($user),
         };
 
-        return response()->json($data + ['server_time' => now()->format('H:i:s')]);
+        return $data + ['updated_at' => now()->format('g:i A')];
     }
 
     /**
@@ -57,9 +98,9 @@ class DashboardController extends Controller
         return 'client';
     }
 
-    private function executiveStats(): array
+    private function executiveStats(User $user): array
     {
-        return [
+        $stats = [
             'pending_quote_requests' => QuoteRequest::where('status', 'pending')->count(),
             'active_projects' => Project::whereIn('status', ['pending_assignment', 'in_progress'])->count(),
             'delivered_projects' => Project::where('status', 'delivered')->count(),
@@ -71,10 +112,16 @@ class DashboardController extends Controller
                         ->orWhereHas('project', fn ($p) => $p->whereIn('status', ['pending_assignment', 'in_progress']));
                 })
                 ->sum('budget'),
-            'payroll_this_month' => (float) PayrollAdjustment::whereMonth('effective_date', now()->month)
-                ->whereYear('effective_date', now()->year)
-                ->sum('amount'),
         ];
+
+        // Money stays with whoever manages payroll (owners and the Management team).
+        if ($user->can('manage payroll')) {
+            $stats['payroll_this_month'] = (float) PayrollAdjustment::whereMonth('effective_date', now()->month)
+                ->whereYear('effective_date', now()->year)
+                ->sum('amount');
+        }
+
+        return $stats;
     }
 
     private function specialistStats(User $user): array

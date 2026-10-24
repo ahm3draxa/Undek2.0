@@ -4,7 +4,9 @@ namespace App\Providers;
 
 use App\Models\QuoteRequest;
 use App\Models\User;
+use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Verified;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -41,6 +43,16 @@ class AppServiceProvider extends ServiceProvider
         // Guest quote requests are only handed to an account once its email is
         // proven — see QuoteRequest::claimGuestRequestsFor().
         Event::listen(Verified::class, fn (Verified $event) => QuoteRequest::claimGuestRequestsFor($event->user));
+
+        // A "remember me" cookie signing someone back in starts a new session;
+        // make it the account's current one (see EnforceSingleSession). The
+        // remember token is rotated on every non-remembered login, so only the
+        // most recent device can do this.
+        Event::listen(Login::class, function (Login $event) {
+            if (Auth::guard($event->guard)->viaRemember() && $event->user instanceof User) {
+                $event->user->forceFill(['current_session_id' => session()->getId()])->save();
+            }
+        });
 
         // Anonymous forms (quote requests with uploads, registration): enough for
         // a real person retrying, far too little to flood storage or the

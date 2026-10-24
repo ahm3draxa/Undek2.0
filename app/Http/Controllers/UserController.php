@@ -167,7 +167,15 @@ class UserController extends Controller
      */
     private function endSessions(User $user): void
     {
-        DB::table('sessions')->where('user_id', $user->id)->delete();
-        $user->forceFill(['remember_token' => Str::random(60)])->save();
+        // No session matches a revoked marker, so EnforceSingleSession signs
+        // out whatever session they have on its next request.
+        $user->forceFill([
+            'current_session_id' => 'revoked:'.Str::random(32),
+            'remember_token' => Str::random(60),
+        ])->save();
+
+        if (config('session.driver') === 'database') {
+            DB::table('sessions')->where('user_id', $user->id)->delete();
+        }
     }
 }

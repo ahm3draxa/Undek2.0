@@ -11,6 +11,7 @@ use App\Models\Skill;
 use App\Models\User;
 use App\Rules\SafeUpload;
 use App\Services\Uploads\SecureUploader;
+use App\Support\PublicCache;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -54,22 +55,29 @@ class QuoteRequestController extends Controller
      */
     public function create(Request $request): View
     {
-        $services = Service::where('is_active', true)->with('skills.category')->orderBy('name')->get();
-        $selectedServiceId = $services->firstWhere('slug', $request->query('service'))?->id;
+        // Public page — cached so visitors don't spend the hourly MySQL
+        // connection allowance (see PublicCache).
+        ['services' => $services, 'skillsByService' => $skillsByService] = PublicCache::remember(PublicCache::QUOTE_FORM, function () {
+            $services = Service::where('is_active', true)->with('skills.category')->orderBy('name')->get();
 
-        $allSkillsByCategory = Skill::with('category')->orderBy('name')->get()
-            ->groupBy(fn ($skill) => $skill->category->name ?? 'Other')
-            ->map(fn ($group) => $group->map(fn ($skill) => ['id' => $skill->id, 'name' => $skill->name])->values());
+            $allSkillsByCategory = Skill::with('category')->orderBy('name')->get()
+                ->groupBy(fn ($skill) => $skill->category->name ?? 'Other')
+                ->map(fn ($group) => $group->map(fn ($skill) => ['id' => $skill->id, 'name' => $skill->name])->values());
 
-        // Skills scoped to each service, falling back to the full list when a service has none defined yet.
-        $skillsByService = $services->mapWithKeys(function ($service) use ($allSkillsByCategory) {
-            $grouped = $service->skills->isEmpty()
-                ? $allSkillsByCategory
-                : $service->skills->groupBy(fn ($skill) => $skill->category->name ?? 'Other')
-                    ->map(fn ($group) => $group->map(fn ($skill) => ['id' => $skill->id, 'name' => $skill->name])->sortBy('name')->values());
+            // Skills scoped to each service, falling back to the full list when a service has none defined yet.
+            $skillsByService = $services->mapWithKeys(function ($service) use ($allSkillsByCategory) {
+                $grouped = $service->skills->isEmpty()
+                    ? $allSkillsByCategory
+                    : $service->skills->groupBy(fn ($skill) => $skill->category->name ?? 'Other')
+                        ->map(fn ($group) => $group->map(fn ($skill) => ['id' => $skill->id, 'name' => $skill->name])->sortBy('name')->values());
 
-            return [$service->id => $grouped];
+                return [$service->id => $grouped];
+            });
+
+            return compact('services', 'skillsByService');
         });
+
+        $selectedServiceId = $services->firstWhere('slug', $request->query('service'))?->id;
 
         $uploadRules = app(SecureUploader::class)->profile('quote_reference');
         $uploadAccept = app(SecureUploader::class)->acceptAttribute('quote_reference');

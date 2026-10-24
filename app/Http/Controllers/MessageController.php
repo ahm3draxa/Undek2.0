@@ -99,6 +99,7 @@ class MessageController extends Controller
 
         return [
             'id' => $message->id,
+            'user_id' => $message->user_id,
             'type' => $message->type,
             'body' => $message->body,
             'created_at' => $message->created_at->toIso8601String(),

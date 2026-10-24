@@ -2,10 +2,9 @@
 
 namespace App\Models;
 
-use App\Http\Controllers\HomeController;
+use App\Support\PublicCache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Cache;
 
 class EmployeeProfile extends Model
 {
@@ -97,13 +96,13 @@ class EmployeeProfile extends Model
 
         // The landing page caches the public team tree — drop it so visibility,
         // position and manager changes show immediately. (Block bodies, not
-        // arrow functions: Cache::forget() returns false when nothing was
-        // cached, and a listener returning false stops the listeners after it.)
+        // arrow functions: a listener returning false stops the listeners
+        // after it, which once silently skipped the team-tools sync below.)
         static::saved(function () {
-            Cache::forget(HomeController::CACHE_KEY);
+            PublicCache::flush();
         });
         static::deleted(function () {
-            Cache::forget(HomeController::CACHE_KEY);
+            PublicCache::flush();
         });
 
         // Team tools follow the position: moving someone to another department
